@@ -59,7 +59,7 @@ la suivante.
 | 3. Liste triée, filtre, recherche | Livrée |
 | 4. Rappels | Livrée |
 | 5. Export de sauvegarde, installation | Livrée |
-| 6. Mise en ligne sur GitHub Pages | Préparée ; reste l'historique à nettoyer et les réglages GitHub (voir « Ce qu'il reste pour la mise en ligne ») |
+| 6. Mise en ligne sur GitHub Pages | Préparée, historique nettoyé ; reste à fusionner et à régler GitHub (voir « Ce qu'il reste pour la mise en ligne ») |
 | 7. Retravail du design | À faire, après la mise en ligne |
 
 ## Retours de l'utilisateur
@@ -213,18 +213,15 @@ ici pour qu'il puisse le relire et le contester.
 
 ## Ce qu'il reste pour la mise en ligne
 
-1. **Nettoyer l'historique.** Le premier commit a pour auteur l'adresse
-   personnelle de l'utilisateur. La remplacer par
-   `211079158+Maxime-sudo13@users.noreply.github.com` (son adresse anonyme
-   GitHub) dans `main` et dans la branche de travail, avec
-   `git filter-branch --env-filter`, puis envoyer les deux branches de force.
-   Le 12 novembre 2026, la réécriture a été faite et vérifiée (aucun fichier
-   changé), mais l'envoi forcé a été refusé par la protection de la session :
-   il faut que l'utilisateur l'autorise. Ne pas contourner ce refus.
-2. **Mettre le travail dans `main`**, par une pull request que l'utilisateur
-   doit demander puis fusionner. Sans cela, une nouvelle session partirait
-   d'une branche principale vide, sans `SPEC.md` ni `CLAUDE.md`.
-3. **Trois gestes de l'utilisateur sur GitHub** : rendre le dépôt public
+1. **Historique nettoyé, fait le 12 novembre 2026.** L'adresse personnelle de
+   l'utilisateur, qui figurait comme auteur du premier commit, a été remplacée
+   par son adresse anonyme GitHub dans `main` et dans la branche de travail,
+   avec son accord. Aucun fichier n'a changé. Les identifiants de tous les
+   commits ont changé à cette occasion.
+2. **Fusionner la pull request** qui apporte le travail dans `main`. Sans
+   cela, une nouvelle session partirait d'une branche principale vide, sans
+   `SPEC.md` ni `CLAUDE.md`.
+3. **Deux réglages de l'utilisateur sur GitHub** : rendre le dépôt public
    (Settings, General, Danger Zone), puis activer Pages (Settings, Pages,
    « Deploy from a branch », branche `main`, dossier racine).
 4. **Vérifier en ligne**, sur téléphone : installation, notifications, fichier
