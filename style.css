@@ -1,0 +1,1199 @@
+/* Mes papiers — styles. Pensé pour le téléphone d'abord. */
+
+:root {
+  color-scheme: light dark;
+
+  --paper: #f4f1ea;        /* fond de page, ton papier */
+  --surface: #fffdf8;      /* cartes et feuilles */
+  --ink: #1d232e;          /* texte */
+  --ink-soft: #5c6470;     /* texte secondaire */
+  --line: #e3ddd0;         /* filets */
+  --accent: #2a4b9b;       /* bleu encre */
+  --on-accent: #ffffff;
+  --accent-soft: #e6ebf7;
+  --field-border: #8f8878; /* contour des champs de saisie */
+  --danger: #a3261c;
+  --on-danger: #ffffff;
+  --warn: #8f5400;         /* échéance dans la semaine */
+  --shadow: 29 35 46;
+
+  --radius: 16px;
+  --gutter: 16px;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-title: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14171c;
+    --surface: #1e2229;
+    --ink: #eceae4;
+    --ink-soft: #a4aab5;
+    --line: #2f353f;
+    --accent: #9db5f5;
+    --on-accent: #0f1d3d;
+    --accent-soft: #252f47;
+    --field-border: #737b88;
+    --danger: #ff9d92;
+    --on-danger: #3b0d08;
+    --warn: #f0b458;
+    --shadow: 0 0 0;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* La page ne défile pas derrière une feuille ouverte. */
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- En-tête ---------- */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: calc(14px + env(safe-area-inset-top)) var(--gutter) 12px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.app-header h1 {
+  font-family: var(--font-title);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.app-header h1 {
+  margin-right: auto;
+}
+
+.count {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Boutons de l'en-tête (rappels, sauvegarde). Un point rouge signale qu'il
+   y a quelque chose à faire. */
+.bell {
+  position: relative;
+  margin: -8px -6px;
+  color: var(--ink);
+}
+
+.bell:last-child {
+  margin-right: -10px;
+}
+
+/* Sur les petits écrans, le titre rétrécit, puis le compteur s'efface. */
+@media (max-width: 380px) {
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 339px) {
+  .count {
+    display: none;
+  }
+}
+
+.bell-dot {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 10px;
+  height: 10px;
+  background: var(--danger);
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+}
+
+/* ---------- Contenu ---------- */
+
+.app-main {
+  max-width: calc(40rem + 2 * var(--gutter));
+  margin: 0 auto;
+  /* On laisse la place du bouton fixe en bas de l'écran. */
+  padding: 16px var(--gutter) calc(112px + env(safe-area-inset-bottom));
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12vh 12px 24px;
+  text-align: center;
+}
+
+.empty h2 {
+  margin-top: 12px;
+  font-family: var(--font-title);
+  font-size: 1.375rem;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.empty p {
+  max-width: 22rem;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.empty-art .art-back {
+  fill: var(--accent-soft);
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.empty-art .art-front {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.empty-art .art-fold,
+.empty-art .art-lines {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.empty-art .art-lines {
+  opacity: 0.45;
+}
+
+.notice {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  color: var(--danger);
+  font-size: 0.9375rem;
+}
+
+.notice-info {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.hint {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  text-wrap: pretty;
+}
+
+/* ---------- Recherche et filtre ---------- */
+
+.toolbar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.search {
+  position: relative;
+}
+
+.search input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 46px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 999px;
+  color: var(--ink);
+  font: inherit; /* 16 px au moins : sinon l'iPhone zoome à la saisie */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search input::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+/* On a notre propre croix pour effacer. */
+.search input::-webkit-search-cancel-button,
+.search input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+/* Une rangée de catégories qui défile sur le côté si elle ne tient pas. */
+.filters {
+  display: flex;
+  gap: 8px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 4px var(--gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
+.filter {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filter[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.no-result {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 40px 12px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.no-result .btn {
+  color: var(--ink);
+}
+
+.group-title {
+  margin: 20px 4px 8px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.group-count {
+  margin-left: 4px;
+  font-weight: 400;
+}
+
+.toolbar + .group,
+.no-result + .group {
+  margin-top: 12px;
+}
+
+/* ---------- Liste des papiers ---------- */
+
+.paper-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* Zone principale : toucher ouvre le papier. */
+.paper-open {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 10px 4px 10px 10px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.paper-open:active {
+  background: var(--accent-soft);
+}
+
+/* Rond à cocher : marque le papier comme traité. */
+.paper-done {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  cursor: pointer;
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--field-border);
+  border-radius: 50%;
+  color: transparent;
+}
+
+.paper-done[aria-pressed="true"] .check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.paper-done:active .check {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Un papier traité s'efface un peu. */
+.paper.is-done .paper-title {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.paper.is-done .thumb {
+  opacity: 0.6;
+}
+
+/* Le papier qu'on vient d'ajouter ou de modifier est signalé un instant. */
+.paper.is-fresh {
+  animation: fresh 1.8s ease-out;
+}
+
+@keyframes fresh {
+  from {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+}
+
+.thumb {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 72px;
+  overflow: hidden;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.paper-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.paper-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+}
+
+/* Pastille de couleur + nom de la catégorie. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--category, #8a909b);
+}
+
+[data-category="impots"] { --category: #3d6fd6; }
+[data-category="sante"] { --category: #2f9a6a; }
+[data-category="logement"] { --category: #a9713f; }
+[data-category="banque"] { --category: #7a5cc7; }
+[data-category="energie"] { --category: #b9820f; }
+[data-category="autre"] { --category: #8a909b; }
+
+.paper-due {
+  white-space: nowrap;
+}
+
+.paper-due[data-level="soon"] {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.paper-due[data-level="late"] {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.paper-meta {
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+/* ---------- Boutons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-secondary {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+
+.btn-danger-quiet {
+  width: 100%;
+  color: var(--danger);
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -8px -10px -8px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.icon-button:active {
+  background: var(--accent-soft);
+}
+
+.link-button {
+  min-height: 44px;
+  margin: -12px -8px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ---------- Bouton d'ajout, fixe en bas ---------- */
+
+.add-bar {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: center;
+  padding: 28px var(--gutter) calc(16px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--paper) 60%, transparent);
+  pointer-events: none;
+}
+
+.add-bar .btn {
+  width: 100%;
+  max-width: 26rem;
+  min-height: 56px;
+  font-size: 1.0625rem;
+  box-shadow: 0 8px 20px rgb(var(--shadow) / 0.22);
+  pointer-events: auto;
+}
+
+/* ---------- Message bref ---------- */
+
+.toast {
+  position: fixed;
+  right: var(--gutter);
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  left: var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  max-width: 26rem;
+  min-height: 52px;
+  margin: 0 auto;
+  padding: 4px 6px 4px 18px;
+  background: var(--ink);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgb(var(--shadow) / 0.3);
+  color: var(--paper);
+  font-size: 0.9375rem;
+}
+
+.toast p {
+  min-width: 0;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+
+.toast-action {
+  flex: none;
+  min-height: 44px;
+  padding: 0 12px;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.toast-action:focus-visible {
+  outline-color: var(--paper);
+}
+
+/* ---------- Feuille d'ajout ---------- */
+
+.sheet {
+  width: 100%;
+  max-width: 34rem;
+  max-height: 92dvh;
+  margin: auto auto 0;
+  padding: 0;
+  overflow: auto;
+  background: var(--surface);
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  color: var(--ink);
+}
+
+.sheet::backdrop,
+.viewer::backdrop {
+  background: rgb(14 16 20 / 0.5);
+}
+
+.sheet-inner {
+  display: grid;
+  gap: 16px;
+  padding: 22px var(--gutter) calc(18px + env(safe-area-inset-bottom));
+}
+
+.sheet h2 {
+  font-family: var(--font-title);
+  font-size: 1.375rem;
+  line-height: 1.2;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.choices,
+.paper-form {
+  display: grid;
+  gap: 10px;
+}
+
+.paper-form {
+  gap: 18px;
+}
+
+.choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 12px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.choice svg {
+  color: var(--accent);
+}
+
+.choice:active {
+  background: var(--accent-soft);
+}
+
+/* Anneau visible au clavier seulement, pas au toucher. */
+.choice:has(input:focus-visible),
+.chip:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.choice-title,
+.choice-hint {
+  display: block;
+}
+
+.choice-title {
+  font-weight: 600;
+}
+
+.choice-hint {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+/* ---------- Aperçu du fichier en tête de feuille ---------- */
+
+.preview {
+  display: grid;
+  gap: 8px;
+}
+
+/* Bandeau : le haut du courrier, là où se trouve l'en-tête. */
+.preview-banner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 150px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: zoom-in;
+}
+
+.preview-banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.preview-zoom {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgb(14 16 20 / 0.72);
+  color: #ffffff;
+  font: 600 0.8125rem/1.2 var(--font-ui);
+}
+
+.preview-banner:disabled .preview-zoom {
+  visibility: hidden;
+}
+
+.preview-file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.preview-meta p {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.done-status {
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ---------- Champs ---------- */
+
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field label,
+.field legend {
+  padding: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* Une légende ne participe pas à la grille : on recrée l'espacement. */
+.field legend {
+  margin-bottom: 8px;
+}
+
+.optional {
+  margin-left: 4px;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.field input[type="text"],
+.field input[type="date"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit; /* 16 px au moins : sinon l'iPhone zoome à la saisie */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Sur iPhone, la date est centrée par défaut. */
+.field input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* Pas de flèche de liste déroulante : les suggestions viennent à la frappe. */
+.field input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+.field input::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+.field input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.field input[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+/* Trois colonnes, ou deux quand l'écran est trop étroit pour les libellés. */
+.chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 46px;
+  padding: 0 6px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chip:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  font-weight: 600;
+}
+
+/* ---------- Rappels ---------- */
+
+/* Sous la date limite : rappel de la règle et bouton du calendrier. */
+.calendar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  min-height: 28px;
+}
+
+.status-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.status-card .hint:empty {
+  display: none;
+}
+
+.sheet section {
+  display: grid;
+  gap: 10px;
+}
+
+/* Bouton qui ouvre le choix d'un fichier. */
+.file-button:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.file-button.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.sheet .group-title {
+  margin: 4px 0 0;
+}
+
+.upcoming {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upcoming li {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.upcoming-date {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.upcoming-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upcoming-stage,
+.upcoming .upcoming-more {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.upcoming .upcoming-more {
+  display: block;
+}
+
+/* ---------- Suppression ---------- */
+
+.delete-zone {
+  margin-top: -6px;
+}
+
+.delete-confirm {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+/* ---------- Visionneuse ---------- */
+
+.viewer {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  background: #0e1014;
+  border: 0;
+  color: #f2f0ea;
+}
+
+.viewer-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}
+
+.viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(8px + env(safe-area-inset-top)) var(--gutter) 8px;
+}
+
+.viewer-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-viewer {
+  min-height: 44px;
+  padding: 0 18px;
+  border-color: rgb(255 255 255 / 0.28);
+  color: inherit;
+}
+
+.btn-viewer:focus-visible {
+  outline-color: #ffffff;
+}
+
+.viewer-body {
+  position: relative;
+  min-height: 0;
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+/* La photo occupe toute la zone, sans être rognée ni déformée. */
+.viewer-body img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ---------- Écrans larges : la feuille devient une fenêtre centrée ---------- */
+
+@media (min-width: 640px) {
+  .sheet {
+    margin: auto;
+    border-radius: 22px;
+  }
+}
+
+/* ---------- Animations ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .sheet[open] {
+    animation: sheet-in 0.22s ease-out;
+  }
+
+  .viewer[open] {
+    animation: fade-in 0.16s ease-out;
+  }
+
+  .toast {
+    animation: sheet-in 0.2s ease-out;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
