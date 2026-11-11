@@ -135,11 +135,29 @@ p {
   white-space: nowrap;
 }
 
-/* Cloche des rappels ; le point signale qu'il reste à les activer. */
+/* Boutons de l'en-tête (rappels, sauvegarde). Un point rouge signale qu'il
+   y a quelque chose à faire. */
 .bell {
   position: relative;
-  margin: -8px -10px -8px -4px;
+  margin: -8px -6px;
   color: var(--ink);
+}
+
+.bell:last-child {
+  margin-right: -10px;
+}
+
+/* Sur les petits écrans, le titre rétrécit, puis le compteur s'efface. */
+@media (max-width: 380px) {
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 339px) {
+  .count {
+    display: none;
+  }
 }
 
 .bell-dot {
@@ -994,8 +1012,24 @@ p {
   display: none;
 }
 
+.sheet section {
+  display: grid;
+  gap: 10px;
+}
+
+/* Bouton qui ouvre le choix d'un fichier. */
+.file-button:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.file-button.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .sheet .group-title {
-  margin: 4px 0 8px;
+  margin: 4px 0 0;
 }
 
 .upcoming {

@@ -1,7 +1,7 @@
 /*
  * Mes papiers — interface.
- * Étape 4 : rappels 7 jours avant la date limite et la veille, par
- * notification et par fichier de calendrier (voir reminders.js).
+ * Étape 5 : sauvegarde de tous les papiers en un fichier (voir backup.js) et
+ * installation sur l'écran d'accueil (voir sw.js et manifest.webmanifest).
  * Les données sont enregistrées sur l'appareil (voir store.js).
  */
 (function () {
@@ -11,6 +11,9 @@
   const PHOTO_MAX_SIDE = 2400;    // pixels, plus grand côté d'une photo enregistrée
   const TOAST_DELAY = 6000;       // millisecondes
   const REMINDER_CHECK_DELAY = 60 * 60 * 1000; // les rappels sont revérifiés toutes les heures
+  const BACKUP_KEY = 'mes-papiers.derniere-sauvegarde'; // réglage gardé par le navigateur
+  const BACKUP_MAX_AGE = 30 * 24 * 60 * 60 * 1000;      // au-delà, une sauvegarde est conseillée
+  const BACKUP_MIN_PAPERS = 3;                          // en dessous, pas la peine d'insister
 
   // Catégories fixes. L'identifiant est ce qui est enregistré.
   const CATEGORIES = [
@@ -32,6 +35,8 @@
     count: $('count'),
     bell: $('bell'),
     bellDot: $('bell-dot'),
+    menuButton: $('menu-button'),
+    menuDot: $('menu-dot'),
     storageError: $('storage-error'),
     simulatedDate: $('simulated-date'),
     empty: $('empty'),
@@ -92,6 +97,13 @@
     remindersFeedback: $('reminders-feedback'),
     upcomingList: $('upcoming-list'),
     upcomingEmpty: $('upcoming-empty'),
+    settingsDialog: $('settings-dialog'),
+    backupSummary: $('backup-summary'),
+    backupExport: $('backup-export'),
+    backupImport: $('backup-import'),
+    backupFeedback: $('backup-feedback'),
+    installStatus: $('install-status'),
+    installButton: $('install-button'),
   };
 
   let papers = [];                    // toutes les fiches
@@ -107,6 +119,9 @@
   // ou localhost) ; sinon null. C'est lui qui affiche les notifications.
   let serviceWorker = Promise.resolve(null);
   let backgroundCheck = false;        // vrai si les échéances sont vérifiées application fermée
+  let installPrompt = null;           // proposition d'installation du navigateur, s'il en fait une
+  let backupBusy = false;
+  let pendingBackup = null;           // sauvegarde prête, en attente d'un geste pour être remise
   const thumbnailUrls = new Map();    // id du papier -> URL de sa vignette
   const searchTexts = new Map();      // id du papier -> texte dans lequel on cherche
 
@@ -395,10 +410,11 @@
     els.empty.hidden = total > 0;
     els.toolbar.hidden = total === 0;
     els.count.textContent =
-      total === 0 ? '' : pending === 0 ? 'Tout est traité' : pending + ' à traiter';
+      total === 0 ? '' : pending === 0 ? 'Tout traité' : pending + ' à traiter';
     els.searchClear.hidden = els.search.value === '';
     renderFilters();
     renderBell();
+    renderMenuDot();
 
     const visible = papers.filter(matchesView);
     const todo = visible.filter((paper) => !paper.done).sort(compareTodo);
@@ -475,14 +491,45 @@
   }
 
   // `action` est facultatif : s'il est donné, un bouton `label` le déclenche.
-  function showToast(message, action, label) {
+  function showToast(message, action, label, delay) {
     els.toastText.textContent = message;
     els.toastAction.hidden = !action;
     els.toastAction.textContent = label || 'Annuler';
     toastAction = action || null;
     els.toast.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(hideToast, TOAST_DELAY);
+    toastTimer = setTimeout(hideToast, delay || TOAST_DELAY);
+  }
+
+  /* ---------- Remise d'un fichier à l'utilisateur ---------- */
+
+  // Télécharge le fichier. Dans une application installée sur iPhone, le
+  // téléchargement n'existe pas : on passe par la feuille de partage, qui
+  // propose « Enregistrer dans Fichiers ». Renvoie false si le navigateur
+  // exige un nouveau geste de l'utilisateur pour le faire.
+  async function saveFile(blob, name) {
+    if (navigator.standalone === true && navigator.canShare) {
+      const file = new File([blob], name, { type: blob.type });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          return true;
+        } catch (error) {
+          if (error && error.name === 'AbortError') return true; // feuille refermée par l'utilisateur
+          if (error && error.name === 'NotAllowedError') return false;
+          // Autre échec : on tente le téléchargement ordinaire.
+        }
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const link = el('a');
+    link.href = url;
+    link.download = name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return true;
   }
 
   /* ---------- Traité / à traiter ---------- */
@@ -710,6 +757,7 @@
         tag: 'essai',
         data: {},
         lang: 'fr',
+        icon: Reminders.ICON,
       });
       els.remindersFeedback.textContent = "Notification d'essai envoyée.";
     } catch (error) {
@@ -728,14 +776,10 @@
     const slug = normalize(paper.organisation)
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }));
-    const link = el('a');
-    link.href = url;
-    link.download = 'date-limite-' + (slug || 'papier') + '.ics';
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    saveFile(
+      new Blob([text], { type: 'text/calendar;charset=utf-8' }),
+      'date-limite-' + (slug || 'papier') + '.ics'
+    );
   }
 
   // Après l'enregistrement d'une date limite : propose d'activer les
@@ -765,6 +809,224 @@
     const paper = papers.find((candidate) => candidate.id === id);
     // On ne remplace pas une feuille déjà ouverte : une saisie est peut-être en cours.
     if (paper && !els.dialog.open) openEdit(paper);
+  }
+
+  /* ---------- Sauvegarde ---------- */
+
+  // Le navigateur garde la trace de la dernière sauvegarde : { at, count }.
+  function lastBackup() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(BACKUP_KEY));
+      return saved && typeof saved.at === 'string' ? saved : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function rememberBackup(count) {
+    try {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify({ at: new Date().toISOString(), count }));
+    } catch (error) {
+      // Réglage non enregistré : sans conséquence sur la sauvegarde elle-même.
+    }
+  }
+
+  function addedSince(backup) {
+    return backup ? papers.filter((paper) => paper.createdAt > backup.at).length : papers.length;
+  }
+
+  // Une sauvegarde est conseillée quand des papiers ont été ajoutés depuis
+  // la dernière, et qu'elle date (ou n'a jamais été faite).
+  function backupAdvised() {
+    const backup = lastBackup();
+    if (papers.length < BACKUP_MIN_PAPERS || addedSince(backup) === 0) return false;
+    return !backup || Date.now() - Date.parse(backup.at) > BACKUP_MAX_AGE;
+  }
+
+  function renderMenuDot() {
+    const advised = backupAdvised();
+    els.menuDot.hidden = !advised;
+    els.menuButton.setAttribute(
+      'aria-label',
+      advised ? 'Sauvegarde et installation : sauvegarde conseillée' : 'Sauvegarde et installation'
+    );
+  }
+
+  const plural = (count, one, many) => count + ' ' + (count > 1 ? many : one);
+
+  function renderBackup() {
+    const total = papers.length;
+    const backup = lastBackup();
+    let summary;
+    if (total === 0) {
+      summary = 'Aucun papier à sauvegarder pour l\'instant.';
+    } else {
+      const size = papers.reduce((sum, paper) => sum + (paper.size || 0), 0);
+      summary = plural(total, 'papier', 'papiers') + ' sur cet appareil, ' + formatSize(size) + '. ';
+      if (!backup) {
+        summary += 'Aucune sauvegarde n\'a encore été faite.';
+      } else {
+        summary +=
+          'Dernière sauvegarde le ' +
+          Reminders.formatDay(formats.long, new Date(backup.at)) +
+          '.';
+        const added = addedSince(backup);
+        if (added > 0) {
+          summary += ' ' + plural(added, 'papier ajouté', 'papiers ajoutés') + ' depuis.';
+        }
+      }
+    }
+    els.backupSummary.textContent = summary;
+    els.backupExport.textContent = pendingBackup ? 'Enregistrer le fichier' : 'Exporter une sauvegarde';
+    els.backupExport.disabled = backupBusy || total === 0;
+    els.backupImport.disabled = backupBusy;
+    els.backupImport.parentElement.classList.toggle('is-disabled', backupBusy);
+  }
+
+  function setBackupBusy(value, message) {
+    backupBusy = value;
+    if (message !== undefined) els.backupFeedback.textContent = message;
+    renderBackup();
+  }
+
+  async function deliverBackup() {
+    const delivered = await saveFile(pendingBackup.blob, pendingBackup.name);
+    if (!delivered) {
+      // Le navigateur veut un nouveau geste : le bouton devient « Enregistrer le fichier ».
+      els.backupFeedback.textContent = 'Sauvegarde prête. Toucher « Enregistrer le fichier ».';
+      renderBackup();
+      return;
+    }
+    rememberBackup(pendingBackup.count);
+    els.backupFeedback.textContent =
+      'Sauvegarde créée : ' +
+      plural(pendingBackup.count, 'papier', 'papiers') +
+      ', ' +
+      formatSize(pendingBackup.blob.size) +
+      '.';
+    pendingBackup = null;
+    renderBackup();
+    renderMenuDot();
+  }
+
+  async function exportBackup() {
+    if (backupBusy) return;
+    if (pendingBackup) {
+      await deliverBackup();
+      return;
+    }
+    setBackupBusy(true, 'Préparation de la sauvegarde…');
+    try {
+      pendingBackup = await Backup.exportAll();
+      setBackupBusy(false);
+      await deliverBackup();
+    } catch (error) {
+      console.error(error);
+      pendingBackup = null;
+      setBackupBusy(false, 'La sauvegarde a échoué. Réessayer.');
+    }
+  }
+
+  async function importBackup(file) {
+    if (backupBusy) return;
+    setBackupBusy(true, 'Restauration en cours…');
+    let message;
+    try {
+      const result = await Backup.restore(
+        file,
+        CATEGORIES.map((category) => category.id)
+      );
+      const parts = [];
+      if (result.added > 0) {
+        parts.push(plural(result.added, 'papier restauré', 'papiers restaurés') + '.');
+      }
+      if (result.existing > 0) {
+        parts.push(
+          result.added === 0 && result.failed === 0
+            ? 'Tous les papiers de cette sauvegarde sont déjà là.'
+            : plural(result.existing, 'était déjà là', 'étaient déjà là') + '.'
+        );
+      }
+      if (result.failed > 0) {
+        parts.push(plural(result.failed, 'papier n\'a pas pu être relu', 'papiers n\'ont pas pu être relus') + '.');
+      }
+      message = parts.join(' ') || 'Cette sauvegarde ne contient aucun papier.';
+    } catch (error) {
+      if (error && error.name === 'BackupFormatError') {
+        message = error.message; // mauvais fichier choisi : rien d'anormal
+      } else {
+        console.error(error);
+        message =
+          error && error.name === 'QuotaExceededError'
+            ? 'Il n\'y a plus assez de place sur cet appareil pour tout restaurer.'
+            : 'La restauration a échoué. Réessayer.';
+      }
+    }
+    try {
+      await refresh();
+    } catch (error) {
+      console.error(error);
+    }
+    setBackupBusy(false, message);
+  }
+
+  /* ---------- Installation ---------- */
+
+  function isInstalled() {
+    return (
+      navigator.standalone === true ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+    );
+  }
+
+  function isApple() {
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+  }
+
+  function renderInstall() {
+    let status;
+    if (isInstalled()) {
+      status = 'L\'application est installée sur cet appareil. Elle s\'ouvre même sans connexion.';
+    } else if (location.protocol === 'file:' || !window.isSecureContext) {
+      status =
+        'L\'installation demande une adresse web sécurisée (https). Elle sera possible une fois l\'application mise en ligne.';
+    } else if (installPrompt) {
+      status =
+        'Une fois installée, l\'application a son icône sur l\'écran d\'accueil et s\'ouvre même sans connexion.';
+    } else if (isApple()) {
+      status =
+        'Sur iPhone ou iPad : ouvrir cette page dans Safari, toucher le bouton Partager, puis « Sur l\'écran d\'accueil ».';
+    } else {
+      status =
+        'Pour l\'installer, ouvrir le menu du navigateur et choisir « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ».';
+    }
+    els.installStatus.textContent = status;
+    els.installButton.hidden = !installPrompt || isInstalled();
+  }
+
+  async function install() {
+    if (!installPrompt) return;
+    const prompt = installPrompt;
+    installPrompt = null;
+    try {
+      prompt.prompt();
+      await prompt.userChoice;
+    } catch (error) {
+      console.error(error);
+    }
+    renderInstall();
+  }
+
+  function openSettings() {
+    els.backupFeedback.textContent = pendingBackup
+      ? 'Sauvegarde prête. Toucher « Enregistrer le fichier ».'
+      : '';
+    renderBackup();
+    renderInstall();
+    if (!els.settingsDialog.open) els.settingsDialog.showModal();
   }
 
   /* ---------- Feuille d'un papier : aperçu ---------- */
@@ -806,10 +1068,26 @@
       els.previewImage.src = imageUrl;
       els.previewOpen.disabled = !canEnlarge;
     } else {
-      els.previewFileLabel.textContent =
-        type === 'application/pdf' ? 'Ouvrir le PDF' : 'Ouvrir le fichier';
+      // Seul un PDF est affiché par le navigateur. Tout autre fichier est
+      // téléchargé : on n'exécute jamais dans l'application un fichier venu
+      // d'ailleurs (une page web glissée parmi les papiers, par exemple).
+      const pdf = type === 'application/pdf';
+      els.previewFileLabel.textContent = pdf ? 'Ouvrir le PDF' : 'Télécharger le fichier';
+      if (pdf) {
+        els.previewFile.removeAttribute('download');
+        els.previewFile.target = '_blank';
+      } else {
+        els.previewFile.download = previewFileName();
+        els.previewFile.removeAttribute('target');
+      }
       if (sheet && sheet.fileUrl) els.previewFile.href = sheet.fileUrl;
     }
+  }
+
+  function previewFileName() {
+    if (!sheet) return 'papier';
+    const name = sheet.mode === 'edit' ? sheet.paper.fileName : sheet.file && sheet.file.name;
+    return name || 'papier';
   }
 
   /* ---------- Feuille d'un papier : ouverture ---------- */
@@ -1221,6 +1499,32 @@
       els.remindersDialog.close();
     }
   });
+  // Sauvegarde et installation.
+  els.menuButton.addEventListener('click', openSettings);
+  els.backupExport.addEventListener('click', exportBackup);
+  els.backupImport.addEventListener('change', () => {
+    const file = els.backupImport.files && els.backupImport.files[0];
+    els.backupImport.value = '';
+    if (file) importBackup(file);
+  });
+  els.installButton.addEventListener('click', install);
+  els.settingsDialog.addEventListener('click', (event) => {
+    if (event.target === els.settingsDialog || event.target.closest('[data-close]')) {
+      els.settingsDialog.close();
+    }
+  });
+  // Le navigateur (Chrome, Edge) signale qu'il peut installer l'application :
+  // on garde sa proposition pour notre propre bouton.
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    if (els.settingsDialog.open) renderInstall();
+  });
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    if (els.settingsDialog.open) renderInstall();
+  });
+
   // L'autorisation peut aussi être donnée ou retirée dans les réglages du
   // navigateur, pendant que l'application est ouverte.
   if (navigator.permissions && navigator.permissions.query) {
@@ -1236,7 +1540,12 @@
   // Toucher une notification demande à ouvrir le papier concerné.
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'open-paper') openPaperById(event.data.id);
+      if (!event.data) return;
+      if (event.data.type === 'open-paper') openPaperById(event.data.id);
+      // Le service worker a trouvé une version plus récente de l'application.
+      if (event.data.type === 'update-available') {
+        showToast('Une nouvelle version est prête.', () => location.reload(), 'Recharger', 30000);
+      }
     });
   }
 

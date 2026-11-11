@@ -13,6 +13,7 @@
 const Reminders = (function () {
   'use strict';
 
+  const ICON = 'icons/icon-192.png';
   const WEEK_DAYS = 7;   // premier rappel : 7 jours avant
   const MAX_SEPARATE = 3; // au-delà, un seul message qui regroupe tout
 
@@ -145,6 +146,7 @@ const Reminders = (function () {
         tag: 'papier-' + item.paper.id, // un seul message à la fois par papier
         data: { id: item.paper.id },
         lang: 'fr',
+        icon: ICON,
       },
     };
   }
@@ -159,6 +161,7 @@ const Reminders = (function () {
         tag: 'papiers',
         data: {},
         lang: 'fr',
+        icon: ICON,
       },
     };
   }
@@ -282,6 +285,7 @@ const Reminders = (function () {
 
   return {
     WEEK_DAYS,
+    ICON,
     parseDay,
     today,
     simulateToday,

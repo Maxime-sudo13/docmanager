@@ -56,8 +56,8 @@ la suivante.
 | 1. Squelette, liste vide, ajout avec photo | Livrée |
 | 2. Trois champs et stockage local | Livrée |
 | 3. Liste triée, filtre, recherche | Livrée |
-| 4. Rappels | Livrée, en attente de test |
-| 5. Export de sauvegarde, installation | À faire |
+| 4. Rappels | Livrée |
+| 5. Export de sauvegarde, installation | Livrée, en attente de test |
 | 6. Mise en ligne sur GitHub Pages | À faire |
 
 ## Décisions prises en cours de route
@@ -148,13 +148,53 @@ ici pour qu'il puisse le relire et le contester.
   cela, on ne peut vérifier un rappel qu'en attendant plusieurs jours. Ce n'est
   pas une fonctionnalité : à retirer si elle gêne.
 
+Étape 5 :
+
+- **La sauvegarde est une archive `.zip` ordinaire.** Les papiers y sont rangés
+  tels quels dans `papiers/`, avec des noms lisibles
+  (`edf_2026-11-30_1a2b3c4d.jpg`) ; `mes-papiers.json` décrit chacun. On peut
+  donc l'ouvrir sur n'importe quel ordinateur et retrouver ses documents sans
+  l'application. Pas de compression : photos et PDF le sont déjà.
+- **Une sauvegarde se restaure**, sans quoi ce n'en serait pas une. Restaurer
+  ajoute les papiers manquants et ne touche jamais à ceux qui sont déjà là :
+  ni fusion, ni écrasement, ni doublon si on restaure deux fois.
+- **Une sauvegarde abîmée rend ce qu'elle peut.** Chaque fichier est vérifié
+  par sa somme de contrôle ; les papiers sains reviennent, les autres sont
+  comptés et signalés. Une archive recompressée par un autre outil est
+  acceptée.
+- **Une sauvegarde vient de l'extérieur, on s'en méfie.** Chaque champ est
+  revérifié à la restauration et seuls les champs connus sont repris. Plus
+  largement, seul un PDF s'ouvre dans le navigateur : tout autre fichier qui
+  n'est pas une image est téléchargé, jamais exécuté dans l'application.
+- **Un point sur le bouton « ⋮ » conseille une sauvegarde** quand il y a au
+  moins trois papiers, du nouveau depuis la dernière, et qu'elle date de plus
+  de trente jours (ou n'a jamais été faite). Rien de plus insistant.
+- **Hors ligne : la copie d'abord, le réseau ensuite.** L'application s'ouvre
+  aussitôt depuis sa copie, même sans connexion. En parallèle elle redemande
+  ses fichiers au serveur ; s'ils ont changé, un message « Une nouvelle version
+  est prête » propose de recharger. On n'est donc jamais bloqué par le réseau,
+  et jamais longtemps en retard d'une version.
+- **Installation** : un bouton quand le navigateur sait le proposer (Chrome,
+  Edge, Android) ; sur iPhone, où ce n'est pas possible, la marche à suivre
+  dans Safari. Le bouton « ⋮ » de l'en-tête ouvre « Sauvegarde et
+  installation ».
+- **Dans l'application installée sur iPhone, les fichiers sont remis par la
+  feuille de partage** (« Enregistrer dans Fichiers »), le téléchargement n'y
+  existant pas. Cela vaut pour la sauvegarde et pour le fichier de calendrier.
+- **L'en-tête** : avec deux boutons, le compteur se réduit à « Tout traité »
+  et s'efface sur les écrans de moins de 340 px.
+
 ## Notes techniques
 
 À respecter dans les étapes suivantes.
 
 - **Fichiers à la racine** : `index.html`, `style.css`, `store.js`,
-  `reminders.js`, `app.js`, `sw.js`. Pas de sous-dossiers tant que ce n'est pas
-  nécessaire.
+  `reminders.js`, `backup.js`, `app.js`, `sw.js`, `manifest.webmanifest`,
+  `icon.svg`. Un seul sous-dossier, `icons/`, pour les icônes PNG de
+  l'installation ; elles reprennent le dessin de `icon.svg` et sont à refaire
+  s'il change.
+- **Tout fichier ajouté à l'application doit l'être aussi à la liste `FILES`
+  de `sw.js`**, sinon il manquera hors ligne.
 - **Scripts classiques, pas de modules ES** : l'application doit s'ouvrir par
   un simple double-clic sur `index.html` (`file://`), où les modules sont
   bloqués.
@@ -193,12 +233,22 @@ ici pour qu'il puisse le relire et le contester.
   (`daysUntil()`) et du seuil de 7 jours (`WEEK_DAYS`) : la liste et les
   rappels s'appuient dessus. Il décide des rappels dus (`pending()`), les
   donne (`check(notify)`) et fabrique le fichier `.ics` (`toICS()`).
-- **`sw.js` est un service worker minimal** : il affiche les notifications
-  (sur Android, une page n'a pas le droit de le faire elle-même), ouvre la
-  fiche quand on en touche une, et répond à la vérification en arrière-plan
-  (`periodicsync`, étiquette `rappels`). Il ne met rien en cache : le
-  fonctionnement hors ligne est pour l'étape 5. Il ne s'installe que sur une
+- **`sw.js`, le service worker, fait deux choses.** Les rappels : il affiche
+  les notifications (sur Android, une page n'a pas le droit de le faire
+  elle-même), ouvre la fiche quand on en touche une, et répond à la
+  vérification en arrière-plan (`periodicsync`, étiquette `rappels`). Le hors
+  ligne : il garde une copie des fichiers de l'application (cache
+  `mes-papiers`), la sert aussitôt, puis redemande chaque fichier au serveur
+  et prévient la page (`update-available`) si l'un a changé. Il ne garde
+  jamais les papiers, qui sont dans IndexedDB. Il ne s'installe que sur une
   adresse en `https` ou sur `localhost`, pas en `file://`.
+- **`backup.js`** écrit et relit l'archive `.zip` lui-même (une centaine de
+  lignes, pas de bibliothèque) : `Backup.exportAll()` et
+  `Backup.restore(file, categories)`. Format de sauvegarde : version 1. Le
+  faire évoluer demande de monter `VERSION` et de continuer à lire l'ancien.
+- **La date de la dernière sauvegarde** est gardée dans `localStorage`
+  (`mes-papiers.derniere-sauvegarde`), pas dans la base : c'est un réglage de
+  l'appareil, qui ne doit pas voyager avec une restauration.
 - **Validation maison** (`novalidate` + messages en français sous les champs),
   plutôt que les bulles du navigateur, qui s'affichent mal sur des cases
   masquées et suivent la langue du téléphone.
@@ -209,7 +259,8 @@ ici pour qu'il puisse le relire et le contester.
   site resté une semaine sans visite. L'installation sur l'écran d'accueil et
   l'export de sauvegarde (étape 5) sont la vraie protection.
 - **Ouverture d'un PDF une fois l'application installée sur iPhone** : le lien
-  vers un nouvel onglet est à vérifier à l'étape 5.
+  vers un nouvel onglet reste à vérifier sur un vrai appareil, ce qui ne sera
+  possible qu'après la mise en ligne.
 - **Rien n'a encore été essayé sur un vrai téléphone** : appareil photo,
   sélecteur de date et clavier sont à valider par l'utilisateur.
 - **Notifications sur téléphone** : elles demandent une adresse en `https`,
@@ -219,5 +270,15 @@ ici pour qu'il puisse le relire et le contester.
 - **Fichier `.ics`** : l'ouverture sur iPhone (Safari, puis application
   installée) et sur Android reste à vérifier. Google Agenda est connu pour
   ignorer les alertes d'un fichier importé et appliquer les siennes.
-- **Icône des notifications** : aucune pour l'instant, Android n'acceptant pas
-  le SVG. À ajouter avec les icônes PNG de l'étape 5.
+- **Installation sur téléphone** : elle demande une adresse en `https`, donc
+  la mise en ligne (étape 6). Vérifiée ici sur ordinateur seulement.
+- **Feuille de partage sur iPhone** (sauvegarde, calendrier) : écrite d'après
+  la documentation et vérifiée en simulation, jamais sur un vrai iPhone.
+- **Taille de la sauvegarde** : l'archive est assemblée par le navigateur
+  avant d'être remise. Sans souci pour quelques centaines de papiers ; à
+  surveiller au-delà de quelques centaines de Mo sur un téléphone. Limite du
+  format : 4 Go.
+- **À décider à l'étape 6** : une politique de sécurité de contenu (CSP) dans
+  `index.html`, qui interdirait techniquement toute requête vers l'extérieur.
+  Elle ferait de « les documents ne quittent jamais l'appareil » une garantie
+  du navigateur, mais doit être essayée avec l'ouverture en `file://`.

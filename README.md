@@ -41,14 +41,43 @@ comme si nous étions ce jour-là, et l'indique par un bandeau.
 6. Dans la fiche du papier, « Ajouter au calendrier » télécharge un fichier
    `.ics`. L'ouvrir propose un évènement avec deux alertes.
 
+## Tester la sauvegarde
+
+1. Ajouter deux ou trois papiers, puis toucher « ⋮ » en haut à droite et
+   « Exporter une sauvegarde ». Un fichier `mes-papiers-AAAA-MM-JJ.zip` est
+   téléchargé.
+2. Ouvrir ce fichier sur l'ordinateur : le dossier `papiers/` contient les
+   documents, lisibles tels quels.
+3. Ouvrir l'application dans une fenêtre de navigation privée (elle y est
+   vide), toucher « ⋮ » puis « Restaurer une sauvegarde » et choisir le
+   fichier : les papiers reviennent.
+
+## Tester l'installation et le hors-ligne
+
+À faire sur `http://localhost:8000`, dans Chrome ou Edge.
+
+1. Toucher « ⋮ » puis « Installer l'application » : elle s'ouvre dans sa
+   propre fenêtre, avec son icône. Si le bouton n'apparaît pas, le navigateur
+   propose la même chose dans sa barre d'adresse ou son menu.
+2. Arrêter le serveur (`Ctrl+C`), puis recharger : l'application s'ouvre quand
+   même, avec ses papiers.
+3. Relancer le serveur. Après une modification des fichiers, le message « Une
+   nouvelle version est prête » propose de recharger.
+
+Sur un téléphone, l'installation demande une adresse en `https` : elle se
+testera après la mise en ligne.
+
 ## Fichiers
 
 | Fichier | Rôle |
 | --- | --- |
 | `index.html` | Structure de la page |
 | `style.css` | Mise en forme |
-| `app.js` | Interface : liste, ajout, consultation, rappels |
+| `app.js` | Interface : liste, ajout, consultation, rappels, sauvegarde |
 | `store.js` | Accès aux données (IndexedDB) |
 | `reminders.js` | Calcul des rappels et fichier de calendrier |
-| `sw.js` | Service worker : affiche les notifications |
-| `icon.svg` | Icône |
+| `backup.js` | Sauvegarde en un fichier `.zip` et restauration |
+| `sw.js` | Service worker : notifications et fonctionnement hors ligne |
+| `manifest.webmanifest` | Description de l'application pour l'installation |
+| `icons/` | Icônes de l'application installée |
+| `icon.svg` | Icône de l'onglet |

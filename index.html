@@ -9,6 +9,15 @@
   <meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)">
   <meta name="format-detection" content="telephone=no">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+
+  <!-- Installation sur l'écran d'accueil. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Mes papiers">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,6 +29,10 @@
       <button id="bell" class="icon-button bell" type="button" aria-label="Rappels" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         <span id="bell-dot" class="bell-dot" hidden></span>
+      </button>
+      <button id="menu-button" class="icon-button bell" type="button" aria-label="Sauvegarde et installation" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="5" r="1.9" fill="currentColor"/><circle cx="12" cy="12" r="1.9" fill="currentColor"/><circle cx="12" cy="19" r="1.9" fill="currentColor"/></svg>
+        <span id="menu-dot" class="bell-dot" hidden></span>
       </button>
     </div>
   </header>
@@ -223,6 +236,45 @@
     </div>
   </dialog>
 
+  <!-- Sauvegarde et installation. -->
+  <dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="settings-title">Sauvegarde et installation</h2>
+        <button class="icon-button" type="button" data-close aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <section aria-labelledby="backup-title">
+        <h3 id="backup-title" class="group-title">Sauvegarde</h3>
+        <div class="status-card">
+          <p id="backup-summary"></p>
+          <button id="backup-export" class="btn btn-primary" type="button">Exporter une sauvegarde</button>
+          <label class="btn btn-secondary file-button">
+            <input id="backup-import" class="visually-hidden" type="file" accept=".zip,application/zip">
+            Restaurer une sauvegarde
+          </label>
+          <p id="backup-feedback" class="hint" role="status"></p>
+        </div>
+        <p class="hint">
+          La sauvegarde est un fichier .zip qui contient tous les papiers, tels
+          quels : il s'ouvre aussi sur un ordinateur. Le ranger ailleurs que
+          sur cet appareil. Restaurer ajoute les papiers manquants, sans
+          toucher à ceux qui sont déjà là.
+        </p>
+      </section>
+
+      <section aria-labelledby="install-title">
+        <h3 id="install-title" class="group-title">Installation</h3>
+        <div class="status-card">
+          <p id="install-status"></p>
+          <button id="install-button" class="btn btn-primary" type="button" hidden>Installer l'application</button>
+        </div>
+      </section>
+    </div>
+  </dialog>
+
   <!-- Visionneuse plein écran pour les photos. -->
   <dialog id="viewer" class="viewer" aria-labelledby="viewer-title">
     <div class="viewer-inner">
@@ -238,6 +290,7 @@
 
   <script src="store.js"></script>
   <script src="reminders.js"></script>
+  <script src="backup.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
