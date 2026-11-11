@@ -2,6 +2,16 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
+
+  <!--
+    Garde-fou : le navigateur refuse à cette page toute requête vers un autre
+    site, et toute requête d'envoi de données tout court. Elle ne peut charger
+    que ses propres fichiers, et les images des papiers gardées sur l'appareil
+    (blob:). Les papiers ne peuvent donc pas quitter l'appareil, même si une
+    erreur se glissait un jour dans le code. « file: » sert à l'ouverture par
+    double-clic sur ce fichier.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file: blob:; manifest-src 'self' file:; worker-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Mes papiers</title>
   <meta name="description" content="Ranger ses papiers administratifs et être prévenu avant les échéances. Tout reste sur l'appareil.">

@@ -7,6 +7,20 @@ serveur, aucun compte, les documents ne quittent jamais l'appareil.
 Le cahier des charges, le plan et l'état d'avancement sont dans
 [SPEC.md](SPEC.md).
 
+## En ligne
+
+Une fois GitHub Pages activé, l'application est à l'adresse
+<https://maxime-sudo13.github.io/docmanager/>. C'est là qu'elle s'installe sur
+un téléphone et que les notifications fonctionnent.
+
+Seul le programme est en ligne. Les papiers restent sur l'appareil de chacun,
+et une règle de sécurité inscrite dans la page interdit au navigateur de les
+envoyer où que ce soit.
+
+Pour activer GitHub Pages : dans le dépôt, « Settings », « Pages », choisir
+« Deploy from a branch », la branche `main` et le dossier racine. Il n'y a
+rien à construire : GitHub sert les fichiers tels quels.
+
 ## Essayer
 
 Il n'y a rien à installer ni à compiler.

@@ -58,8 +58,8 @@ la suivante.
 | 2. Trois champs et stockage local | Livrée |
 | 3. Liste triée, filtre, recherche | Livrée |
 | 4. Rappels | Livrée |
-| 5. Export de sauvegarde, installation | Livrée, en attente de test |
-| 6. Mise en ligne sur GitHub Pages | À faire |
+| 5. Export de sauvegarde, installation | Livrée |
+| 6. Mise en ligne sur GitHub Pages | Préparée ; reste l'historique à nettoyer et les réglages GitHub (voir « Ce qu'il reste pour la mise en ligne ») |
 | 7. Retravail du design | À faire, après la mise en ligne |
 
 ## Retours de l'utilisateur
@@ -196,6 +196,40 @@ ici pour qu'il puisse le relire et le contester.
 - **L'en-tête** : avec deux boutons, le compteur se réduit à « Tout traité »
   et s'efface sur les écrans de moins de 340 px.
 
+Étape 6 :
+
+- **Publication « depuis une branche », sans rien construire.** GitHub Pages
+  sert les fichiers du dépôt tels quels : ni étape de build, ni automatisation
+  à entretenir. Un fichier vide `.nojekyll` lui dit de ne rien transformer.
+  L'adresse sera `https://maxime-sudo13.github.io/docmanager/`.
+- **Une règle de sécurité stricte dans `index.html`** (demandée par
+  l'utilisateur). Le navigateur refuse à la page toute requête vers un autre
+  site, toute requête d'envoi, tout script ou style écrit dans la page, et
+  `eval`. « Les documents ne quittent jamais l'appareil » devient une garantie
+  du navigateur et plus seulement une promesse du code.
+- **Le dépôt devient public** (accord de l'utilisateur) : c'est la condition
+  de l'hébergement gratuit. Son adresse e-mail personnelle, présente dans le
+  premier commit, doit être retirée de l'historique avant.
+
+## Ce qu'il reste pour la mise en ligne
+
+1. **Nettoyer l'historique.** Le premier commit a pour auteur l'adresse
+   personnelle de l'utilisateur. La remplacer par
+   `211079158+Maxime-sudo13@users.noreply.github.com` (son adresse anonyme
+   GitHub) dans `main` et dans la branche de travail, avec
+   `git filter-branch --env-filter`, puis envoyer les deux branches de force.
+   Le 12 novembre 2026, la réécriture a été faite et vérifiée (aucun fichier
+   changé), mais l'envoi forcé a été refusé par la protection de la session :
+   il faut que l'utilisateur l'autorise. Ne pas contourner ce refus.
+2. **Mettre le travail dans `main`**, par une pull request que l'utilisateur
+   doit demander puis fusionner. Sans cela, une nouvelle session partirait
+   d'une branche principale vide, sans `SPEC.md` ni `CLAUDE.md`.
+3. **Trois gestes de l'utilisateur sur GitHub** : rendre le dépôt public
+   (Settings, General, Danger Zone), puis activer Pages (Settings, Pages,
+   « Deploy from a branch », branche `main`, dossier racine).
+4. **Vérifier en ligne**, sur téléphone : installation, notifications, fichier
+   de calendrier, ouverture d'un PDF, sauvegarde.
+
 ## Notes techniques
 
 À respecter dans les étapes suivantes.
@@ -212,6 +246,12 @@ ici pour qu'il puisse le relire et le contester.
   bloqués.
 - **Aucune ressource externe** : ni police, ni CDN, ni mesure d'audience.
   Police système uniquement.
+- **La règle de sécurité (CSP) de `index.html` s'impose au code.** Pas de
+  `<script>` ni de `<style>` écrits dans la page, pas d'attribut `style="…"`,
+  pas de `fetch` depuis la page (le service worker, lui, peut), pas d'image en
+  `data:`. Toute nouvelle sorte de ressource doit y être ajoutée : une police
+  embarquée, par exemple, demandera `font-src 'self' file:`. `file:` y figure
+  pour l'ouverture par double-clic.
 - **`store.js` est la seule porte d'accès aux données.** Interface asynchrone :
   `PaperStore.list()`, `add(paper, file)`, `update(id, changes)`, `remove(id)`,
   `getFile(id)`, `requestPersistence()`. `app.js` ne touche jamais à IndexedDB.
@@ -290,12 +330,9 @@ ici pour qu'il puisse le relire et le contester.
   avant d'être remise. Sans souci pour quelques centaines de papiers ; à
   surveiller au-delà de quelques centaines de Mo sur un téléphone. Limite du
   format : 4 Go.
-- **Préalable à l'étape 6** : le dépôt GitHub est privé, et GitHub Pages n'est
-  gratuit que pour un dépôt public. Le rendre public expose le code (jamais
-  les papiers) et l'historique, dont le premier commit, qui porte l'adresse
-  e-mail personnelle de l'utilisateur. À lui de choisir, et de dire s'il veut
-  que cette adresse soit retirée de l'historique avant.
-- **À décider à l'étape 6** : une politique de sécurité de contenu (CSP) dans
-  `index.html`, qui interdirait techniquement toute requête vers l'extérieur.
-  Elle ferait de « les documents ne quittent jamais l'appareil » une garantie
-  du navigateur, mais doit être essayée avec l'ouverture en `file://`.
+- **Règle de sécurité et ouverture par double-clic** : vérifiée dans Chromium
+  seulement. Si Firefox ou Safari refusaient de charger l'application en
+  `file://`, c'est elle qu'il faudrait regarder en premier.
+- **Après la réécriture de l'historique**, l'ancien premier commit reste un
+  temps récupérable sur GitHub par qui connaîtrait son identifiant exact, que
+  personne d'autre n'a vu. Le support GitHub peut le purger sur demande.
