@@ -22,7 +22,12 @@
 
   <main class="app-main">
 
-    <section id="empty" class="empty">
+    <p id="storage-error" class="notice" role="alert" hidden>
+      Impossible d'accéder au stockage de cet appareil : les papiers ne peuvent
+      pas être enregistrés. Vérifier que la navigation privée est désactivée.
+    </p>
+
+    <section id="empty" class="empty" hidden>
       <svg class="empty-art" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
         <rect class="art-back" x="36" y="16" width="58" height="80" rx="6" transform="rotate(9 65 56)"/>
         <path class="art-front" d="M30 22h42l20 20v56a6 6 0 0 1-6 6H30a6 6 0 0 1-6-6V28a6 6 0 0 1 6-6z"/>
@@ -35,12 +40,6 @@
 
     <ul id="list" class="paper-list" hidden></ul>
 
-    <!-- Note provisoire : à retirer à l'étape 2, quand les papiers seront enregistrés. -->
-    <p class="prototype-note">
-      Prototype, étape 1 : les papiers ne sont pas encore enregistrés.
-      Ils disparaissent quand la page est fermée ou rechargée.
-    </p>
-
   </main>
 
   <div class="add-bar">
@@ -50,10 +49,19 @@
     </button>
   </div>
 
-  <!-- Feuille d'ajout : on choisit d'abord la source, puis on vérifie l'aperçu. -->
-  <dialog id="add-dialog" class="sheet" aria-labelledby="add-title">
+  <!--
+    Feuille d'un papier. Elle sert à l'ajout (on choisit la photo, puis on
+    remplit les champs) et à la consultation d'un papier existant (mêmes
+    champs, modifiables, plus la suppression).
+  -->
+  <dialog id="paper-dialog" class="sheet" aria-labelledby="paper-dialog-title">
     <div class="sheet-inner">
-      <h2 id="add-title">Nouveau papier</h2>
+      <div class="sheet-head">
+        <h2 id="paper-dialog-title">Nouveau papier</h2>
+        <button class="icon-button" type="button" data-close aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
 
       <div id="step-choose" class="choices">
         <label class="choice">
@@ -72,24 +80,66 @@
             <span class="choice-hint">Image ou PDF déjà sur l'appareil</span>
           </span>
         </label>
-        <button class="btn btn-quiet" type="button" data-close>Annuler</button>
       </div>
 
-      <form id="step-preview" hidden>
-        <figure class="preview">
-          <img id="preview-image" alt="Aperçu du papier" hidden>
-          <div id="preview-file" class="preview-file" hidden>
-            <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M7.5 3.5H14l5 5v10a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5V6a2.5 2.5 0 0 1 2.5-2.5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 3.5V7a1.5 1.5 0 0 0 1.5 1.5H19" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      <form id="paper-form" class="paper-form" novalidate hidden>
+
+        <div class="preview">
+          <button id="preview-open" class="preview-banner" type="button" aria-label="Agrandir la photo" hidden>
+            <img id="preview-image" alt="">
+            <span class="preview-zoom" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Agrandir
+            </span>
+          </button>
+          <a id="preview-file" class="preview-file" target="_blank" rel="noopener" hidden>
+            <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M7.5 3.5H14l5 5v10a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5V6a2.5 2.5 0 0 1 2.5-2.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3.5V7a1.5 1.5 0 0 0 1.5 1.5H19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            <span id="preview-file-label">Ouvrir le fichier</span>
+          </a>
+          <div class="preview-meta">
+            <p id="preview-caption"></p>
+            <button id="change-button" class="link-button" type="button">Changer</button>
           </div>
-          <figcaption id="preview-caption"></figcaption>
-        </figure>
-        <div class="actions">
-          <button id="change-button" class="btn btn-secondary" type="button">Changer</button>
-          <button id="confirm-button" class="btn btn-primary" type="submit">Ajouter</button>
         </div>
+
+        <fieldset class="field">
+          <legend>Catégorie</legend>
+          <div id="category-chips" class="chips"></div>
+          <p id="category-error" class="field-error" hidden>Choisir une catégorie.</p>
+        </fieldset>
+
+        <div class="field">
+          <label for="organisation">Organisme</label>
+          <input id="organisation" name="organisation" type="text" list="organisation-list"
+                 maxlength="80" autocomplete="off" autocorrect="off" spellcheck="false"
+                 enterkeyhint="done" placeholder="Ex. : EDF, CAF, mutuelle…"
+                 aria-describedby="organisation-error">
+          <datalist id="organisation-list"></datalist>
+          <p id="organisation-error" class="field-error" hidden>Indiquer l'organisme.</p>
+        </div>
+
+        <div class="field">
+          <label for="due-date">Date limite <span class="optional">facultative</span></label>
+          <input id="due-date" name="dueDate" type="date" aria-describedby="due-date-error">
+          <p id="due-date-error" class="field-error" hidden>Compléter la date ou la laisser vide.</p>
+        </div>
+
+        <button id="save-button" class="btn btn-primary" type="submit">Ajouter</button>
+
+        <div id="delete-zone" class="delete-zone" hidden>
+          <button id="delete-button" class="btn btn-danger-quiet" type="button">Supprimer ce papier</button>
+          <div id="delete-confirm" class="delete-confirm" hidden>
+            <p>Supprimer définitivement ce papier et son fichier ?</p>
+            <div class="actions">
+              <button id="delete-cancel" class="btn btn-secondary" type="button">Annuler</button>
+              <button id="delete-yes" class="btn btn-danger" type="button">Supprimer</button>
+            </div>
+          </div>
+        </div>
+
       </form>
 
-      <p id="add-error" class="error" role="alert" hidden></p>
+      <p id="sheet-error" class="error" role="alert" hidden></p>
     </div>
   </dialog>
 

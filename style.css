@@ -11,7 +11,9 @@
   --accent: #2a4b9b;       /* bleu encre */
   --on-accent: #ffffff;
   --accent-soft: #e6ebf7;
+  --field-border: #8f8878; /* contour des champs de saisie */
   --danger: #a3261c;
+  --on-danger: #ffffff;
   --shadow: 29 35 46;
 
   --radius: 16px;
@@ -30,7 +32,9 @@
     --accent: #9db5f5;
     --on-accent: #0f1d3d;
     --accent-soft: #252f47;
+    --field-border: #737b88;
     --danger: #ff9d92;
+    --on-danger: #3b0d08;
     --shadow: 0 0 0;
   }
 }
@@ -68,8 +72,7 @@ body {
 
 h1,
 h2,
-p,
-figure {
+p {
   margin: 0;
 }
 
@@ -182,16 +185,13 @@ figure {
   opacity: 0.45;
 }
 
-.prototype-note {
-  margin: 24px auto 0;
-  max-width: 24rem;
-  padding: 10px 14px;
-  border: 1px dashed var(--line);
+.notice {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--danger);
   border-radius: 12px;
-  color: var(--ink-soft);
-  font-size: 0.8125rem;
-  text-align: center;
-  text-wrap: pretty;
+  color: var(--danger);
+  font-size: 0.9375rem;
 }
 
 /* ---------- Liste des papiers ---------- */
@@ -261,9 +261,36 @@ figure {
 }
 
 .paper-meta {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+}
+
+/* Pastille de couleur + nom de la catégorie. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--category, #8a909b);
+}
+
+[data-category="impots"] { --category: #3d6fd6; }
+[data-category="sante"] { --category: #2f9a6a; }
+[data-category="logement"] { --category: #a9713f; }
+[data-category="banque"] { --category: #7a5cc7; }
+[data-category="energie"] { --category: #b9820f; }
+[data-category="autre"] { --category: #8a909b; }
+
+.paper-due {
   white-space: nowrap;
 }
 
@@ -310,8 +337,45 @@ figure {
   background: var(--surface);
 }
 
-.btn-quiet {
+.btn-danger {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+
+.btn-danger-quiet {
+  width: 100%;
+  color: var(--danger);
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -8px -10px -8px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
   color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.icon-button:active {
+  background: var(--accent-soft);
+}
+
+.link-button {
+  min-height: 44px;
+  margin: -12px -8px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ---------- Bouton d'ajout, fixe en bas ---------- */
@@ -367,10 +431,21 @@ figure {
   line-height: 1.2;
 }
 
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .choices,
-#step-preview {
+.paper-form {
   display: grid;
   gap: 10px;
+}
+
+.paper-form {
+  gap: 18px;
 }
 
 .choice {
@@ -396,7 +471,8 @@ figure {
 }
 
 /* Anneau visible au clavier seulement, pas au toucher. */
-.choice:has(input:focus-visible) {
+.choice:has(input:focus-visible),
+.chip:has(input:focus-visible) {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
@@ -415,47 +491,210 @@ figure {
   font-size: 0.875rem;
 }
 
+/* ---------- Aperçu du fichier en tête de feuille ---------- */
+
 .preview {
   display: grid;
   gap: 8px;
-  justify-items: center;
 }
 
-.preview img {
+/* Bandeau : le haut du courrier, là où se trouve l'en-tête. */
+.preview-banner {
+  position: relative;
   display: block;
-  max-width: 100%;
-  max-height: 46dvh;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  width: 100%;
+  height: 150px;
+  padding: 0;
+  overflow: hidden;
   background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: zoom-in;
+}
+
+.preview-banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.preview-zoom {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgb(14 16 20 / 0.72);
+  color: #ffffff;
+  font: 600 0.8125rem/1.2 var(--font-ui);
+}
+
+.preview-banner:disabled .preview-zoom {
+  visibility: hidden;
 }
 
 .preview-file {
-  display: grid;
-  place-items: center;
-  width: 96px;
-  height: 124px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 72px;
+  padding: 12px 16px;
   background: var(--accent-soft);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
 }
 
-.preview figcaption {
-  max-width: 100%;
-  overflow: hidden;
+.preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 20px;
   color: var(--ink-soft);
   font-size: 0.875rem;
-  text-align: center;
+}
+
+.preview-meta p {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* ---------- Champs ---------- */
+
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field label,
+.field legend {
+  padding: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* Une légende ne participe pas à la grille : on recrée l'espacement. */
+.field legend {
+  margin-bottom: 8px;
+}
+
+.optional {
+  margin-left: 4px;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.field input[type="text"],
+.field input[type="date"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit; /* 16 px au moins : sinon l'iPhone zoome à la saisie */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Sur iPhone, la date est centrée par défaut. */
+.field input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* Pas de flèche de liste déroulante : les suggestions viennent à la frappe. */
+.field input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+.field input::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+.field input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.field input[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+/* Trois colonnes, ou deux quand l'écran est trop étroit pour les libellés. */
+.chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 46px;
+  padding: 0 6px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chip:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  font-weight: 600;
+}
+
+/* ---------- Suppression ---------- */
+
+.delete-zone {
+  margin-top: -6px;
+}
+
+.delete-confirm {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
 .actions {
   display: grid;
-  grid-template-columns: 1fr 1.4fr;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 6px;
 }
 
 .error {
