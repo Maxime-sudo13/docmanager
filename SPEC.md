@@ -48,6 +48,7 @@ la suivante.
 4. Rappels
 5. Export de sauvegarde, installation sur l'écran d'accueil
 6. Mise en ligne sur GitHub Pages
+7. Retravail du design (ajouté par l'utilisateur le 11 novembre 2026)
 
 ## Suivi
 
@@ -59,6 +60,17 @@ la suivante.
 | 4. Rappels | Livrée |
 | 5. Export de sauvegarde, installation | Livrée, en attente de test |
 | 6. Mise en ligne sur GitHub Pages | À faire |
+| 7. Retravail du design | À faire, après la mise en ligne |
+
+## Retours de l'utilisateur
+
+- **11 novembre 2026, après l'étape 5** : l'application est jugée intuitive,
+  facile et utile. Le design peut être nettement mieux : il sera retravaillé
+  après la mise en ligne, avec l'objectif de la rendre « très jolie ».
+  Commencer par montrer deux ou trois maquettes de l'écran principal et le
+  laisser choisir, avant de toucher au code. Les contraintes restent : pas de
+  framework, aucune ressource externe (une police de caractères doit être
+  embarquée dans le dépôt), téléphone d'abord.
 
 ## Décisions prises en cours de route
 
@@ -278,6 +290,11 @@ ici pour qu'il puisse le relire et le contester.
   avant d'être remise. Sans souci pour quelques centaines de papiers ; à
   surveiller au-delà de quelques centaines de Mo sur un téléphone. Limite du
   format : 4 Go.
+- **Préalable à l'étape 6** : le dépôt GitHub est privé, et GitHub Pages n'est
+  gratuit que pour un dépôt public. Le rendre public expose le code (jamais
+  les papiers) et l'historique, dont le premier commit, qui porte l'adresse
+  e-mail personnelle de l'utilisateur. À lui de choisir, et de dire s'il veut
+  que cette adresse soit retirée de l'historique avant.
 - **À décider à l'étape 6** : une politique de sécurité de contenu (CSP) dans
   `index.html`, qui interdirait techniquement toute requête vers l'extérieur.
   Elle ferait de « les documents ne quittent jamais l'appareil » une garantie
