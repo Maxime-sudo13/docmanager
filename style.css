@@ -1,0 +1,562 @@
+/* Mes papiers — styles. Pensé pour le téléphone d'abord. */
+
+:root {
+  color-scheme: light dark;
+
+  --paper: #f4f1ea;        /* fond de page, ton papier */
+  --surface: #fffdf8;      /* cartes et feuilles */
+  --ink: #1d232e;          /* texte */
+  --ink-soft: #5c6470;     /* texte secondaire */
+  --line: #e3ddd0;         /* filets */
+  --accent: #2a4b9b;       /* bleu encre */
+  --on-accent: #ffffff;
+  --accent-soft: #e6ebf7;
+  --danger: #a3261c;
+  --shadow: 29 35 46;
+
+  --radius: 16px;
+  --gutter: 16px;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-title: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14171c;
+    --surface: #1e2229;
+    --ink: #eceae4;
+    --ink-soft: #a4aab5;
+    --line: #2f353f;
+    --accent: #9db5f5;
+    --on-accent: #0f1d3d;
+    --accent-soft: #252f47;
+    --danger: #ff9d92;
+    --shadow: 0 0 0;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* La page ne défile pas derrière une feuille ouverte. */
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+p,
+figure {
+  margin: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- En-tête ---------- */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: calc(14px + env(safe-area-inset-top)) var(--gutter) 12px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.app-header h1 {
+  font-family: var(--font-title);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.count {
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+/* ---------- Contenu ---------- */
+
+.app-main {
+  max-width: calc(40rem + 2 * var(--gutter));
+  margin: 0 auto;
+  /* On laisse la place du bouton fixe en bas de l'écran. */
+  padding: 16px var(--gutter) calc(112px + env(safe-area-inset-bottom));
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12vh 12px 24px;
+  text-align: center;
+}
+
+.empty h2 {
+  margin-top: 12px;
+  font-family: var(--font-title);
+  font-size: 1.375rem;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.empty p {
+  max-width: 22rem;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.empty-art .art-back {
+  fill: var(--accent-soft);
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.empty-art .art-front {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.empty-art .art-fold,
+.empty-art .art-lines {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.empty-art .art-lines {
+  opacity: 0.45;
+}
+
+.prototype-note {
+  margin: 24px auto 0;
+  max-width: 24rem;
+  padding: 10px 14px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+/* ---------- Liste des papiers ---------- */
+
+.paper-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paper {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 12px 10px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.paper:active {
+  background: var(--accent-soft);
+}
+
+.thumb {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 72px;
+  overflow: hidden;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.paper-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.paper-meta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paper-meta {
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.paper-chevron {
+  color: var(--ink-soft);
+}
+
+/* ---------- Boutons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-secondary {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.btn-quiet {
+  color: var(--ink-soft);
+}
+
+/* ---------- Bouton d'ajout, fixe en bas ---------- */
+
+.add-bar {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  justify-content: center;
+  padding: 28px var(--gutter) calc(16px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--paper) 60%, transparent);
+  pointer-events: none;
+}
+
+.add-bar .btn {
+  width: 100%;
+  max-width: 26rem;
+  min-height: 56px;
+  font-size: 1.0625rem;
+  box-shadow: 0 8px 20px rgb(var(--shadow) / 0.22);
+  pointer-events: auto;
+}
+
+/* ---------- Feuille d'ajout ---------- */
+
+.sheet {
+  width: 100%;
+  max-width: 34rem;
+  max-height: 92dvh;
+  margin: auto auto 0;
+  padding: 0;
+  overflow: auto;
+  background: var(--surface);
+  border: 0;
+  border-radius: 22px 22px 0 0;
+  color: var(--ink);
+}
+
+.sheet::backdrop,
+.viewer::backdrop {
+  background: rgb(14 16 20 / 0.5);
+}
+
+.sheet-inner {
+  display: grid;
+  gap: 16px;
+  padding: 22px var(--gutter) calc(18px + env(safe-area-inset-bottom));
+}
+
+.sheet h2 {
+  font-family: var(--font-title);
+  font-size: 1.375rem;
+  line-height: 1.2;
+}
+
+.choices,
+#step-preview {
+  display: grid;
+  gap: 10px;
+}
+
+.choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 12px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.choice svg {
+  color: var(--accent);
+}
+
+.choice:active {
+  background: var(--accent-soft);
+}
+
+/* Anneau visible au clavier seulement, pas au toucher. */
+.choice:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.choice-title,
+.choice-hint {
+  display: block;
+}
+
+.choice-title {
+  font-weight: 600;
+}
+
+.choice-hint {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.preview {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 46dvh;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.preview-file {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 124px;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--accent);
+}
+
+.preview figcaption {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+/* ---------- Visionneuse ---------- */
+
+.viewer {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  background: #0e1014;
+  border: 0;
+  color: #f2f0ea;
+}
+
+.viewer-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+}
+
+.viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(8px + env(safe-area-inset-top)) var(--gutter) 8px;
+}
+
+.viewer-title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-viewer {
+  min-height: 44px;
+  padding: 0 18px;
+  border-color: rgb(255 255 255 / 0.28);
+  color: inherit;
+}
+
+.btn-viewer:focus-visible {
+  outline-color: #ffffff;
+}
+
+.viewer-body {
+  position: relative;
+  min-height: 0;
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+/* La photo occupe toute la zone, sans être rognée ni déformée. */
+.viewer-body img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ---------- Écrans larges : la feuille devient une fenêtre centrée ---------- */
+
+@media (min-width: 640px) {
+  .sheet {
+    margin: auto;
+    border-radius: 22px;
+  }
+}
+
+/* ---------- Animations ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  .sheet[open] {
+    animation: sheet-in 0.22s ease-out;
+  }
+
+  .viewer[open] {
+    animation: fade-in 0.16s ease-out;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
