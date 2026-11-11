@@ -108,8 +108,7 @@ p {
 
 .app-header-inner {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 12px;
   max-width: 40rem;
   margin: 0 auto;
@@ -123,10 +122,35 @@ p {
   line-height: 1.15;
 }
 
+.app-header h1 {
+  margin-right: auto;
+}
+
 .count {
+  min-width: 0;
+  overflow: hidden;
   color: var(--ink-soft);
   font-size: 0.9375rem;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Cloche des rappels ; le point signale qu'il reste à les activer. */
+.bell {
+  position: relative;
+  margin: -8px -10px -8px -4px;
+  color: var(--ink);
+}
+
+.bell-dot {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 10px;
+  height: 10px;
+  background: var(--danger);
+  border: 2px solid var(--paper);
+  border-radius: 50%;
 }
 
 /* ---------- Contenu ---------- */
@@ -194,6 +218,17 @@ p {
   border-radius: 12px;
   color: var(--danger);
   font-size: 0.9375rem;
+}
+
+.notice-info {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.hint {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  text-wrap: pretty;
 }
 
 /* ---------- Recherche et filtre ---------- */
@@ -932,6 +967,73 @@ p {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
   font-weight: 600;
+}
+
+/* ---------- Rappels ---------- */
+
+/* Sous la date limite : rappel de la règle et bouton du calendrier. */
+.calendar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  min-height: 28px;
+}
+
+.status-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.status-card .hint:empty {
+  display: none;
+}
+
+.sheet .group-title {
+  margin: 4px 0 8px;
+}
+
+.upcoming {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upcoming li {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.upcoming-date {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+.upcoming-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upcoming-stage,
+.upcoming .upcoming-more {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.upcoming .upcoming-more {
+  display: block;
 }
 
 /* ---------- Suppression ---------- */

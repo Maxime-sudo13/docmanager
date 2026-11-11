@@ -17,6 +17,10 @@
     <div class="app-header-inner">
       <h1>Mes papiers</h1>
       <p id="count" class="count"></p>
+      <button id="bell" class="icon-button bell" type="button" aria-label="Rappels" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span id="bell-dot" class="bell-dot" hidden></span>
+      </button>
     </div>
   </header>
 
@@ -26,6 +30,9 @@
       Impossible d'accéder au stockage de cet appareil : les papiers ne peuvent
       pas être enregistrés. Vérifier que la navigation privée est désactivée.
     </p>
+
+    <!-- Affiché seulement pendant un essai avec une date simulée (voir README). -->
+    <p id="simulated-date" class="notice notice-info" hidden></p>
 
     <section id="empty" class="empty" hidden>
       <svg class="empty-art" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
@@ -79,7 +86,7 @@
   <!-- Message bref après une action, avec de quoi l'annuler. -->
   <div id="toast" class="toast" role="status" hidden>
     <p id="toast-text"></p>
-    <button id="toast-undo" class="toast-action" type="button">Annuler</button>
+    <button id="toast-action" class="toast-action" type="button">Annuler</button>
   </div>
 
   <!--
@@ -156,6 +163,10 @@
           <label for="due-date">Date limite <span class="optional">facultative</span></label>
           <input id="due-date" name="dueDate" type="date" aria-describedby="due-date-error">
           <p id="due-date-error" class="field-error" hidden>Compléter la date ou la laisser vide.</p>
+          <div id="calendar-row" class="calendar-row" hidden>
+            <p class="hint">Rappels 7 jours avant et la veille.</p>
+            <button id="calendar-button" class="link-button" type="button">Ajouter au calendrier</button>
+          </div>
         </div>
 
         <button id="save-button" class="btn btn-primary" type="submit">Ajouter</button>
@@ -178,6 +189,40 @@
     </div>
   </dialog>
 
+  <!-- Rappels : état des notifications et prochains rappels prévus. -->
+  <dialog id="reminders-dialog" class="sheet" aria-labelledby="reminders-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="reminders-title">Rappels</h2>
+        <button class="icon-button" type="button" data-close aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <p>Un rappel est prévu 7 jours avant chaque date limite, puis la veille.</p>
+
+      <div class="status-card">
+        <p id="reminders-status"></p>
+        <button id="reminders-enable" class="btn btn-primary" type="button" hidden>Activer les notifications</button>
+        <button id="reminders-test" class="btn btn-secondary" type="button" hidden>Envoyer une notification d'essai</button>
+        <p id="reminders-feedback" class="hint" role="status"></p>
+      </div>
+
+      <section aria-labelledby="upcoming-title">
+        <h3 id="upcoming-title" class="group-title">Prochains rappels</h3>
+        <ul id="upcoming-list" class="upcoming"></ul>
+        <p id="upcoming-empty" class="hint" hidden>Aucun rappel à venir.</p>
+      </section>
+
+      <p class="hint">
+        L'application ne peut vérifier les échéances que lorsqu'elle est
+        ouverte : la notification arrive à ce moment-là. Pour être prévenu
+        même sans l'ouvrir, ajouter l'échéance au calendrier du téléphone,
+        depuis la fiche du papier.
+      </p>
+    </div>
+  </dialog>
+
   <!-- Visionneuse plein écran pour les photos. -->
   <dialog id="viewer" class="viewer" aria-labelledby="viewer-title">
     <div class="viewer-inner">
@@ -192,6 +237,7 @@
   </dialog>
 
   <script src="store.js"></script>
+  <script src="reminders.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

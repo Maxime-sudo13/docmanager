@@ -1,7 +1,7 @@
 /*
  * Mes papiers — interface.
- * Étape 3 : la liste est triée par échéance la plus proche, se filtre par
- * catégorie, se fouille par mot, et chaque papier peut être marqué « traité ».
+ * Étape 4 : rappels 7 jours avant la date limite et la veille, par
+ * notification et par fichier de calendrier (voir reminders.js).
  * Les données sont enregistrées sur l'appareil (voir store.js).
  */
 (function () {
@@ -9,8 +9,8 @@
 
   const THUMBNAIL_MAX_SIDE = 320; // pixels, plus grand côté de la vignette
   const PHOTO_MAX_SIDE = 2400;    // pixels, plus grand côté d'une photo enregistrée
-  const SOON_DAYS = 7;            // une échéance est « proche » à partir de 7 jours
   const TOAST_DELAY = 6000;       // millisecondes
+  const REMINDER_CHECK_DELAY = 60 * 60 * 1000; // les rappels sont revérifiés toutes les heures
 
   // Catégories fixes. L'identifiant est ce qui est enregistré.
   const CATEGORIES = [
@@ -30,7 +30,10 @@
   const els = {
     main: document.querySelector('.app-main'),
     count: $('count'),
+    bell: $('bell'),
+    bellDot: $('bell-dot'),
     storageError: $('storage-error'),
+    simulatedDate: $('simulated-date'),
     empty: $('empty'),
     toolbar: $('toolbar'),
     search: $('search'),
@@ -48,7 +51,7 @@
     addButton: $('add-button'),
     toast: $('toast'),
     toastText: $('toast-text'),
-    toastUndo: $('toast-undo'),
+    toastAction: $('toast-action'),
     dialog: $('paper-dialog'),
     dialogTitle: $('paper-dialog-title'),
     stepChoose: $('step-choose'),
@@ -69,6 +72,8 @@
     organisationError: $('organisation-error'),
     dueDate: $('due-date'),
     dueDateError: $('due-date-error'),
+    calendarRow: $('calendar-row'),
+    calendarButton: $('calendar-button'),
     saveButton: $('save-button'),
     doneToggle: $('done-toggle'),
     deleteZone: $('delete-zone'),
@@ -80,6 +85,13 @@
     viewer: $('viewer'),
     viewerTitle: $('viewer-title'),
     viewerImage: $('viewer-image'),
+    remindersDialog: $('reminders-dialog'),
+    remindersStatus: $('reminders-status'),
+    remindersEnable: $('reminders-enable'),
+    remindersTest: $('reminders-test'),
+    remindersFeedback: $('reminders-feedback'),
+    upcomingList: $('upcoming-list'),
+    upcomingEmpty: $('upcoming-empty'),
   };
 
   let papers = [];                    // toutes les fiches
@@ -90,7 +102,11 @@
   let busy = false;
   let filtersShown = '';              // catégories actuellement proposées dans le filtre
   let toastTimer = null;
-  let toastUndo = null;
+  let toastAction = null;             // ce que fait le bouton du message bref
+  // Le service worker, s'il a pu être installé (il faut une adresse en https
+  // ou localhost) ; sinon null. C'est lui qui affiche les notifications.
+  let serviceWorker = Promise.resolve(null);
+  let backgroundCheck = false;        // vrai si les échéances sont vérifiées application fermée
   const thumbnailUrls = new Map();    // id du papier -> URL de sa vignette
   const searchTexts = new Map();      // id du papier -> texte dans lequel on cherche
 
@@ -100,6 +116,7 @@
     long: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
     dueThisYear: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }),
     dueOtherYear: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
+    weekday: new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
   };
 
   function formatSize(bytes) {
@@ -110,28 +127,13 @@
     return number(bytes / (1024 * 1024), 1) + ' Mo';
   }
 
-  // Une date limite est enregistrée sous la forme « AAAA-MM-JJ », sans heure
-  // ni fuseau : c'est un jour du calendrier. Renvoie null si elle est invalide.
-  function parseDay(value) {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
-    if (!match) return null;
-    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-    const date = new Date(year, month - 1, day);
-    const exists =
-      date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-    return exists ? date : null;
-  }
+  // Les calculs de jours sont dans reminders.js, que le service worker
+  // utilise aussi : une seule définition de « aujourd'hui » et de « proche ».
+  const parseDay = Reminders.parseDay;
 
   function formatDueDate(date) {
-    const thisYear = date.getFullYear() === new Date().getFullYear();
-    return (thisYear ? formats.dueThisYear : formats.dueOtherYear).format(date);
-  }
-
-  // Nombre de jours entre aujourd'hui et `date` : négatif si elle est passée.
-  function daysFromToday(date) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return Math.round((date - today) / 86400000);
+    const thisYear = date.getFullYear() === Reminders.today().getFullYear();
+    return Reminders.formatDay(thisYear ? formats.dueThisYear : formats.dueOtherYear, date);
   }
 
   // Ce qu'on affiche pour l'échéance d'un papier : { text, level }, où level
@@ -141,11 +143,11 @@
     if (!date) return null;
     const day = formatDueDate(date);
     if (paper.done) return { text: 'Date limite : ' + day, level: '' };
-    const days = daysFromToday(date);
+    const days = Reminders.daysUntil(paper.dueDate);
     if (days < 0) return { text: 'En retard · ' + day, level: 'late' };
     if (days === 0) return { text: "Aujourd'hui", level: 'soon' };
     if (days === 1) return { text: 'Demain · ' + day, level: 'soon' };
-    if (days <= SOON_DAYS) return { text: 'Dans ' + days + ' jours · ' + day, level: 'soon' };
+    if (days <= Reminders.WEEK_DAYS) return { text: 'Dans ' + days + ' jours · ' + day, level: 'soon' };
     return { text: 'Date limite : ' + day, level: '' };
   }
 
@@ -197,7 +199,7 @@
         paper.organisation,
         categoryLabel(paper.category),
         paper.fileName,
-        date ? formats.long.format(date) : '',
+        date ? Reminders.formatDay(formats.long, date) : '',
       ].join(' ')
     );
   }
@@ -396,6 +398,7 @@
       total === 0 ? '' : pending === 0 ? 'Tout est traité' : pending + ' à traiter';
     els.searchClear.hidden = els.search.value === '';
     renderFilters();
+    renderBell();
 
     const visible = papers.filter(matchesView);
     const todo = visible.filter((paper) => !paper.done).sort(compareTodo);
@@ -468,13 +471,15 @@
   function hideToast() {
     clearTimeout(toastTimer);
     els.toast.hidden = true;
-    toastUndo = null;
+    toastAction = null;
   }
 
-  function showToast(message, undo) {
+  // `action` est facultatif : s'il est donné, un bouton `label` le déclenche.
+  function showToast(message, action, label) {
     els.toastText.textContent = message;
-    els.toastUndo.hidden = !undo;
-    toastUndo = undo || null;
+    els.toastAction.hidden = !action;
+    els.toastAction.textContent = label || 'Annuler';
+    toastAction = action || null;
     els.toast.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(hideToast, TOAST_DELAY);
@@ -496,14 +501,16 @@
       return;
     }
     const name = '« ' + (extraFields ? extraFields.organisation : paper.organisation) + ' »';
-    showToast(done ? name + ' est traité.' : name + ' est remis à traiter.', () =>
-      saveDone(paper, !done, null, false).catch(reportDoneError)
+    showToast(
+      done ? name + ' est traité.' : name + ' est remis à traiter.',
+      () => saveDone(paper, !done, null, false).catch(reportDoneError),
+      'Annuler'
     );
   }
 
   function reportDoneError(error) {
     console.error(error);
-    showToast("Le changement n'a pas pu être enregistré.", null);
+    showToast("Le changement n'a pas pu être enregistré.");
   }
 
   async function toggleDoneFromList(paper) {
@@ -517,6 +524,247 @@
     } catch (error) {
       reportDoneError(error);
     }
+  }
+
+  /* ---------- Rappels : notifications ---------- */
+
+  // 'granted' (activées), 'default' (pas encore demandées), 'denied'
+  // (refusées) ou 'unavailable' (impossibles ici).
+  function notificationState() {
+    if (
+      typeof Notification === 'undefined' ||
+      !window.isSecureContext ||
+      location.protocol === 'file:'
+    ) {
+      return 'unavailable';
+    }
+    return Notification.permission;
+  }
+
+  function unavailableReason() {
+    if (location.protocol === 'file:') {
+      return "Les notifications ne fonctionnent pas quand l'application est ouverte comme un simple fichier : il lui faut une adresse web.";
+    }
+    if (!window.isSecureContext) {
+      return "Les notifications demandent une adresse sécurisée (https). Elles fonctionneront une fois l'application mise en ligne.";
+    }
+    return "Les notifications ne sont pas disponibles dans ce navigateur. Sur iPhone, il faut d'abord installer l'application sur l'écran d'accueil.";
+  }
+
+  // Sur Android, seule une notification passant par le service worker est
+  // permise. La page n'affiche elle-même qu'à défaut.
+  async function notify(title, options) {
+    const registration = await serviceWorker;
+    if (registration) {
+      await registration.showNotification(title, options);
+      return;
+    }
+    const notification = new Notification(title, options);
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+      if (options.data && options.data.id) openPaperById(options.data.id);
+    };
+  }
+
+  function registerServiceWorker() {
+    if (
+      !('serviceWorker' in navigator) ||
+      !window.isSecureContext ||
+      location.protocol === 'file:'
+    ) {
+      return Promise.resolve(null);
+    }
+    return navigator.serviceWorker
+      .register('sw.js')
+      .then(() => navigator.serviceWorker.ready)
+      .catch((error) => {
+        console.error(error);
+        return null;
+      });
+  }
+
+  // Demande au navigateur de réveiller le service worker de temps en temps,
+  // application fermée. Seul Chrome sur Android l'accorde, et seulement à
+  // une application installée.
+  async function registerBackgroundCheck() {
+    backgroundCheck = false;
+    try {
+      const registration = await serviceWorker;
+      if (!registration || !('periodicSync' in registration)) return;
+      const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+      if (status.state !== 'granted') return;
+      await registration.periodicSync.register('rappels', { minInterval: 12 * 60 * 60 * 1000 });
+      backgroundCheck = true;
+    } catch (error) {
+      // Pas pris en charge ici : les rappels restent donnés à l'ouverture.
+    }
+  }
+
+  // Donne les rappels dus. Appelé à l'ouverture, au retour sur
+  // l'application, et toutes les heures tant qu'elle reste ouverte.
+  async function checkReminders() {
+    if (notificationState() !== 'granted') return;
+    try {
+      const given = await Reminders.check(notify);
+      if (given.length > 0) await refresh();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // Le point sur la cloche signale qu'il reste à activer les notifications.
+  function renderBell() {
+    const attention =
+      notificationState() === 'default' &&
+      papers.some((paper) => !paper.done && paper.dueDate);
+    els.bellDot.hidden = !attention;
+    els.bell.setAttribute(
+      'aria-label',
+      attention ? 'Rappels : notifications à activer' : 'Rappels'
+    );
+  }
+
+  function renderReminders() {
+    const state = notificationState();
+    if (state === 'granted') {
+      els.remindersStatus.textContent =
+        'Les notifications sont activées sur cet appareil.' +
+        (backgroundCheck
+          ? " Les échéances sont aussi vérifiées de temps en temps quand l'application est fermée."
+          : '');
+    } else if (state === 'default') {
+      els.remindersStatus.textContent = 'Les notifications ne sont pas encore activées.';
+    } else if (state === 'denied') {
+      els.remindersStatus.textContent =
+        'Les notifications sont bloquées pour cette application. Pour les rétablir, les autoriser dans les réglages du navigateur, puis revenir ici.';
+    } else {
+      els.remindersStatus.textContent = unavailableReason();
+    }
+    els.remindersEnable.hidden = state !== 'default';
+    els.remindersTest.hidden = state !== 'granted';
+
+    const start = Reminders.today().getTime();
+    const items = Reminders.upcoming(papers);
+    const shown = items.slice(0, 6);
+    els.upcomingEmpty.hidden = items.length > 0;
+    els.upcomingList.replaceChildren(
+      ...shown.map((item) => {
+        const line = el('li');
+        const day =
+          item.date.getTime() === start ? "aujourd'hui" : Reminders.formatDay(formats.weekday, item.date);
+        line.append(
+          el('span', 'upcoming-date', day),
+          el('span', 'upcoming-name', item.paper.organisation),
+          el('span', 'upcoming-stage', item.stage === 'week' ? '7 jours avant' : 'la veille')
+        );
+        return line;
+      })
+    );
+    if (items.length > shown.length) {
+      els.upcomingList.append(
+        el('li', 'upcoming-more', 'et ' + (items.length - shown.length) + ' autres')
+      );
+    }
+  }
+
+  function openReminders() {
+    els.remindersFeedback.textContent = '';
+    renderBell();
+    renderReminders();
+    if (!els.remindersDialog.open) els.remindersDialog.showModal();
+  }
+
+  // À appeler chaque fois que l'autorisation a pu changer, que ce soit par
+  // notre bouton ou dans les réglages du navigateur.
+  async function afterPermissionChange() {
+    if (notificationState() === 'granted') {
+      await registerBackgroundCheck();
+      checkReminders();
+    }
+    renderBell();
+    if (els.remindersDialog.open) renderReminders();
+  }
+
+  async function enableNotifications() {
+    if (notificationState() === 'default') {
+      try {
+        await Notification.requestPermission();
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    await afterPermissionChange();
+    const state = notificationState();
+    if (els.remindersDialog.open) return; // la feuille « Rappels » montre déjà le résultat
+    if (state === 'granted') showToast('Notifications activées.');
+    // Refusées ou impossibles : la feuille explique comment faire autrement.
+    // (Demande simplement écartée : on n'insiste pas.)
+    else if (state !== 'default') openReminders();
+  }
+
+  async function sendTestNotification() {
+    try {
+      await notify('Mes papiers', {
+        body: "Notification d'essai : les rappels s'afficheront comme ceci.",
+        tag: 'essai',
+        data: {},
+        lang: 'fr',
+      });
+      els.remindersFeedback.textContent = "Notification d'essai envoyée.";
+    } catch (error) {
+      console.error(error);
+      els.remindersFeedback.textContent = "La notification n'a pas pu être affichée.";
+    }
+  }
+
+  /* ---------- Rappels : calendrier ---------- */
+
+  // Télécharge un fichier .ics : l'ouvrir ajoute l'échéance à l'agenda du
+  // téléphone, avec une alerte 7 jours avant et une autre la veille.
+  function downloadCalendar(paper) {
+    const text = Reminders.toICS(paper, categoryLabel(paper.category));
+    if (!text) return;
+    const slug = normalize(paper.organisation)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }));
+    const link = el('a');
+    link.href = url;
+    link.download = 'date-limite-' + (slug || 'papier') + '.ics';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  // Après l'enregistrement d'une date limite : propose d'activer les
+  // notifications, sinon d'ajouter l'échéance au calendrier.
+  function offerReminders(paper) {
+    if (!paper || paper.done || Reminders.upcoming([paper]).length === 0) return;
+    const state = notificationState();
+    if (state === 'default') {
+      showToast('Être prévenu 7 jours avant et la veille ?', enableNotifications, 'Activer');
+    } else if (state === 'granted') {
+      showToast('Rappels prévus 7 jours avant et la veille.', () => downloadCalendar(paper), 'Calendrier');
+    } else {
+      showToast("Pour un rappel, ajouter l'échéance au calendrier.", () => downloadCalendar(paper), 'Calendrier');
+    }
+  }
+
+  // Arrivée par une notification, application fermée : l'adresse se termine
+  // par « #papier=… », qui désigne le papier à ouvrir.
+  function openPaperFromAddress() {
+    const match = /^#papier=(.+)$/.exec(location.hash);
+    if (!match) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    openPaperById(decodeURIComponent(match[1]));
+  }
+
+  function openPaperById(id) {
+    const paper = papers.find((candidate) => candidate.id === id);
+    // On ne remplace pas une feuille déjà ouverte : une saisie est peut-être en cours.
+    if (paper && !els.dialog.open) openEdit(paper);
   }
 
   /* ---------- Feuille d'un papier : aperçu ---------- */
@@ -574,6 +822,17 @@
     setBusy(false);
   }
 
+  // « Ajouter au calendrier » n'a de sens que pour un papier enregistré, à
+  // traiter, et qui a une date limite.
+  function renderCalendarRow() {
+    els.calendarRow.hidden = !(
+      sheet &&
+      sheet.mode === 'edit' &&
+      !sheet.paper.done &&
+      els.dueDate.value !== ''
+    );
+  }
+
   function showStep(step) {
     els.stepChoose.hidden = step !== 'choose';
     els.form.hidden = step !== 'form';
@@ -588,6 +847,7 @@
     els.doneStatus.hidden = true;
     els.doneToggle.hidden = true;
     els.deleteZone.hidden = true;
+    renderCalendarRow();
     showStep('choose');
     els.dialog.showModal();
   }
@@ -620,19 +880,20 @@
     els.doneToggle.textContent = paper.done ? 'Remettre à traiter' : 'Marquer comme traité';
     els.doneStatus.hidden = !paper.done;
     els.doneStatus.textContent = paper.doneAt
-      ? 'Traité le ' + formats.long.format(new Date(paper.doneAt))
+      ? 'Traité le ' + Reminders.formatDay(formats.long, new Date(paper.doneAt))
       : 'Traité';
 
     const radio = els.categoryChips.querySelector('input[value="' + paper.category + '"]');
     if (radio) radio.checked = true;
     els.organisation.value = paper.organisation;
     els.dueDate.value = paper.dueDate || '';
+    renderCalendarRow();
     els.previewCaption.textContent =
       kindLabel(paper.type) +
       ' · ' +
       formatSize(paper.size) +
       ' · ajouté le ' +
-      formats.long.format(new Date(paper.createdAt));
+      Reminders.formatDay(formats.long, new Date(paper.createdAt));
 
     // En attendant le fichier, on montre la vignette.
     showPreview(paper.type, thumbnailUrl(paper), false);
@@ -656,6 +917,7 @@
   function setBusy(value) {
     busy = value;
     els.saveButton.disabled = value;
+    els.calendarButton.disabled = value;
     els.doneToggle.disabled = value;
     els.deleteYes.disabled = value;
   }
@@ -674,6 +936,11 @@
     setFieldError(els.organisationError, els.organisation, !organisation);
     setFieldError(els.dueDateError, els.dueDate, dueIncomplete);
 
+    // Si la date limite change, les rappels repartent de zéro pour la
+    // nouvelle date (sans prévenir d'une échéance qu'on vient de saisir).
+    const previous = sheet && sheet.mode === 'edit' ? sheet.paper.dueDate : undefined;
+    const reminded = (dueValue || null) !== previous ? Reminders.armed(dueValue) : undefined;
+
     if (!checked) {
       els.categoryChips.querySelector('input').focus();
       return null;
@@ -686,7 +953,9 @@
       els.dueDate.focus();
       return null;
     }
-    return { category: checked.value, organisation, dueDate: dueValue || null };
+    const fields = { category: checked.value, organisation, dueDate: dueValue || null };
+    if (reminded) fields.reminded = reminded;
+    return fields;
   }
 
   function saveErrorMessage(error) {
@@ -732,6 +1001,39 @@
       els.dialog.close();
       await refresh();
       reveal(id);
+      if (fields.reminded) offerReminders(papers.find((paper) => paper.id === id));
+    } catch (error) {
+      console.error(error);
+      showSheetError(saveErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Depuis la feuille : enregistre les champs s'ils ont changé, puis
+  // télécharge le fichier de calendrier.
+  async function onCalendar() {
+    if (!sheet || sheet.mode !== 'edit' || busy) return;
+    els.sheetError.hidden = true;
+    const fields = readFields();
+    if (!fields || !fields.dueDate) return;
+
+    setBusy(true);
+    try {
+      let paper = sheet.paper;
+      const changed =
+        fields.category !== paper.category ||
+        fields.organisation !== paper.organisation ||
+        fields.dueDate !== paper.dueDate;
+      if (changed) {
+        paper = await PaperStore.update(
+          paper.id,
+          Object.assign(fields, { updatedAt: new Date().toISOString() })
+        );
+        sheet.paper = paper;
+        await refresh();
+      }
+      downloadCalendar(paper);
     } catch (error) {
       console.error(error);
       showSheetError(saveErrorMessage(error));
@@ -856,10 +1158,10 @@
     event.target.classList.remove('is-fresh');
   });
 
-  els.toastUndo.addEventListener('click', () => {
-    const undo = toastUndo;
+  els.toastAction.addEventListener('click', () => {
+    const action = toastAction;
     hideToast();
-    if (undo) undo();
+    if (action) action();
   });
 
   // Feuille d'un papier.
@@ -876,7 +1178,11 @@
   els.organisation.addEventListener('input', () =>
     setFieldError(els.organisationError, els.organisation, false)
   );
-  els.dueDate.addEventListener('input', () => setFieldError(els.dueDateError, els.dueDate, false));
+  els.dueDate.addEventListener('input', () => {
+    setFieldError(els.dueDateError, els.dueDate, false);
+    renderCalendarRow();
+  });
+  els.calendarButton.addEventListener('click', onCalendar);
 
   els.doneToggle.addEventListener('click', onDoneToggle);
   els.deleteButton.addEventListener('click', () => showDeleteConfirm(true));
@@ -906,14 +1212,67 @@
   });
   els.viewer.addEventListener('close', () => els.viewerImage.removeAttribute('src'));
 
-  // Au retour sur l'application (le lendemain, par exemple), « Demain »
-  // doit devenir « Aujourd'hui » : on redessine la liste.
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) render();
+  // Rappels.
+  els.bell.addEventListener('click', openReminders);
+  els.remindersEnable.addEventListener('click', enableNotifications);
+  els.remindersTest.addEventListener('click', sendTestNotification);
+  els.remindersDialog.addEventListener('click', (event) => {
+    if (event.target === els.remindersDialog || event.target.closest('[data-close]')) {
+      els.remindersDialog.close();
+    }
   });
+  // L'autorisation peut aussi être donnée ou retirée dans les réglages du
+  // navigateur, pendant que l'application est ouverte.
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions
+      .query({ name: 'notifications' })
+      .then((status) => {
+        status.onchange = afterPermissionChange;
+      })
+      .catch(() => {
+        // Ce navigateur ne sait pas prévenir : l'état est relu à chaque affichage.
+      });
+  }
+  // Toucher une notification demande à ouvrir le papier concerné.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'open-paper') openPaperById(event.data.id);
+    });
+  }
 
-  refresh().catch((error) => {
-    console.error(error);
-    els.storageError.hidden = false;
+  // Au retour sur l'application (le lendemain, par exemple), « Demain »
+  // doit devenir « Aujourd'hui » : on redessine la liste et on revérifie
+  // les rappels.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    render();
+    checkReminders();
   });
+  setInterval(checkReminders, REMINDER_CHECK_DELAY);
+
+  // Pour les essais : « ?date=AAAA-MM-JJ » dans l'adresse fait croire à
+  // l'application que nous sommes ce jour-là (voir README).
+  const simulated = Reminders.simulateToday(new URLSearchParams(location.search).get('date'));
+  if (simulated) {
+    els.simulatedDate.textContent =
+      'Essai : l\'application fait comme si nous étions le ' +
+      Reminders.formatDay(formats.long, simulated) +
+      '. Retirer « ?date=… » de l\'adresse pour revenir à la vraie date.';
+    els.simulatedDate.hidden = false;
+  }
+
+  serviceWorker = registerServiceWorker();
+
+  refresh().then(
+    async () => {
+      openPaperFromAddress();
+      window.addEventListener('hashchange', openPaperFromAddress);
+      if (notificationState() === 'granted') await registerBackgroundCheck();
+      checkReminders();
+    },
+    (error) => {
+      console.error(error);
+      els.storageError.hidden = false;
+    }
+  );
 })();

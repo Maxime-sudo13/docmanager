@@ -55,8 +55,8 @@ la suivante.
 | --- | --- |
 | 1. Squelette, liste vide, ajout avec photo | Livrée |
 | 2. Trois champs et stockage local | Livrée |
-| 3. Liste triée, filtre, recherche | Livrée, en attente de test |
-| 4. Rappels | À faire |
+| 3. Liste triée, filtre, recherche | Livrée |
+| 4. Rappels | Livrée, en attente de test |
 | 5. Export de sauvegarde, installation | À faire |
 | 6. Mise en ligne sur GitHub Pages | À faire |
 
@@ -113,12 +113,48 @@ ici pour qu'il puisse le relire et le contester.
 - **Après un ajout ou une modification, le papier est amené à l'écran** et
   signalé un instant ; si la recherche ou le filtre le cachaient, ils sont levés.
 
+Étape 4 :
+
+- **Ce que peut une notification sans serveur.** Rien ne peut réveiller
+  l'application à heure fixe : elle donne donc ses rappels quand elle tourne,
+  c'est-à-dire à l'ouverture, au retour au premier plan, puis toutes les heures
+  tant qu'elle reste ouverte. Un rappel manqué est rattrapé à l'ouverture
+  suivante, tant que la date limite n'est pas dépassée. Sur Android, une fois
+  l'application installée, le navigateur peut en plus la réveiller de temps en
+  temps en arrière-plan ; c'est demandé, sans garantie.
+- **Le calendrier est le rappel sûr.** « Ajouter au calendrier » crée un
+  évènement sur la journée de la date limite, avec deux alertes à 9 h : 7 jours
+  avant et la veille. C'est l'agenda du téléphone qui prévient, application
+  fermée ou non. Rajouter le même papier après un changement de date met à jour
+  l'évènement au lieu d'en créer un second.
+- **Un rappel n'est donné qu'une fois**, jamais pour un papier traité, jamais
+  pour une échéance dépassée (la liste l'affiche déjà en rouge). Changer la
+  date limite relance les deux rappels.
+- **Pas de rappel pour une échéance qu'on vient de saisir** : un papier ajouté
+  à trois jours de sa date limite ne déclenche pas « dans 3 jours » dans la
+  seconde ; il sera rappelé la veille.
+- **Au-delà de trois rappels dus en même temps, un seul message les regroupe**
+  (retour de vacances, première activation).
+- **L'autorisation n'est jamais demandée d'office.** Après l'enregistrement
+  d'une date limite, un message propose « Activer » ; un point sur la cloche de
+  l'en-tête rappelle que ce n'est pas fait. Si la demande est écartée sans
+  réponse, l'application n'insiste pas.
+- **La cloche ouvre la feuille « Rappels »** : état des notifications,
+  notification d'essai, liste des prochains rappels, et le rappel honnête de la
+  limite ci-dessus.
+- **Toucher une notification ouvre la fiche du papier.**
+- **Outil d'essai** : ajouter `?date=AAAA-MM-JJ` à l'adresse fait croire à
+  l'application que nous sommes ce jour-là, avec un bandeau bien visible. Sans
+  cela, on ne peut vérifier un rappel qu'en attendant plusieurs jours. Ce n'est
+  pas une fonctionnalité : à retirer si elle gêne.
+
 ## Notes techniques
 
 À respecter dans les étapes suivantes.
 
-- **Fichiers à la racine** : `index.html`, `style.css`, `store.js`, `app.js`.
-  Pas de sous-dossiers tant que ce n'est pas nécessaire.
+- **Fichiers à la racine** : `index.html`, `style.css`, `store.js`,
+  `reminders.js`, `app.js`, `sw.js`. Pas de sous-dossiers tant que ce n'est pas
+  nécessaire.
 - **Scripts classiques, pas de modules ES** : l'application doit s'ouvrir par
   un simple double-clic sur `index.html` (`file://`), où les modules sont
   bloqués.
@@ -129,7 +165,7 @@ ici pour qu'il puisse le relire et le contester.
   `getFile(id)`, `requestPersistence()`. `app.js` ne touche jamais à IndexedDB.
 - **Base IndexedDB `mes-papiers`, version 1, deux tables** indexées par `id` :
   - `papers` : la fiche `{ id, category, organisation, dueDate, done, doneAt,
-    fileName, type, size, createdAt, updatedAt, thumbnail }` ;
+    reminded, fileName, type, size, createdAt, updatedAt, thumbnail }` ;
   - `files` : `{ id, type, data }`, le fichier lui-même, rangé à part pour que
     l'affichage de la liste ne charge pas toutes les photos en mémoire.
 
@@ -144,12 +180,25 @@ ici pour qu'il puisse le relire et le contester.
   `done` dit si le papier est traité ; `doneAt` est alors l'instant où il l'a
   été (`null` sinon, et absent des fiches créées à l'étape 2).
   `thumbnail` est une vignette JPEG de 320 px au plus, ou `null`.
+  `reminded` retient les rappels déjà donnés : `{ week, eve }`, où chaque
+  valeur est la date limite pour laquelle le rappel a été donné (une autre
+  date limite, ou rien, veut dire « pas encore donné »).
 - **Formats acceptés** : images et PDF. Un PDF n'a pas de vignette et s'ouvre
   dans un nouvel onglet du navigateur.
 - **Tri, filtre et recherche se font en mémoire**, dans `app.js`, à chaque
-  affichage : pas d'index dans la base. `dueInfo()` est le seul endroit qui
-  décide si une échéance est en retard ou proche ; les rappels de l'étape 4
-  doivent s'appuyer dessus (`SOON_DAYS`).
+  affichage : pas d'index dans la base.
+- **`reminders.js` est chargé par la page et par le service worker.** Il ne
+  touche donc jamais à l'affichage. C'est la seule définition de
+  « aujourd'hui » (`Reminders.today()`), du nombre de jours restants
+  (`daysUntil()`) et du seuil de 7 jours (`WEEK_DAYS`) : la liste et les
+  rappels s'appuient dessus. Il décide des rappels dus (`pending()`), les
+  donne (`check(notify)`) et fabrique le fichier `.ics` (`toICS()`).
+- **`sw.js` est un service worker minimal** : il affiche les notifications
+  (sur Android, une page n'a pas le droit de le faire elle-même), ouvre la
+  fiche quand on en touche une, et répond à la vérification en arrière-plan
+  (`periodicsync`, étiquette `rappels`). Il ne met rien en cache : le
+  fonctionnement hors ligne est pour l'étape 5. Il ne s'installe que sur une
+  adresse en `https` ou sur `localhost`, pas en `file://`.
 - **Validation maison** (`novalidate` + messages en français sous les champs),
   plutôt que les bulles du navigateur, qui s'affichent mal sur des cases
   masquées et suivent la langue du téléphone.
@@ -163,3 +212,12 @@ ici pour qu'il puisse le relire et le contester.
   vers un nouvel onglet est à vérifier à l'étape 5.
 - **Rien n'a encore été essayé sur un vrai téléphone** : appareil photo,
   sélecteur de date et clavier sont à valider par l'utilisateur.
+- **Notifications sur téléphone** : elles demandent une adresse en `https`,
+  donc la mise en ligne (étape 6) ; sur iPhone il faut en plus que
+  l'application soit installée sur l'écran d'accueil (étape 5). D'ici là, elles
+  ne se vérifient que sur ordinateur, en `localhost`.
+- **Fichier `.ics`** : l'ouverture sur iPhone (Safari, puis application
+  installée) et sur Android reste à vérifier. Google Agenda est connu pour
+  ignorer les alertes d'un fichier importé et appliquer les siennes.
+- **Icône des notifications** : aucune pour l'instant, Android n'acceptant pas
+  le SVG. À ajouter avec les icônes PNG de l'étape 5.
