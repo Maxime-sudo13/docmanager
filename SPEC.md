@@ -54,8 +54,8 @@ la suivante.
 | Étape | État |
 | --- | --- |
 | 1. Squelette, liste vide, ajout avec photo | Livrée |
-| 2. Trois champs et stockage local | Livrée, en attente de test |
-| 3. Liste triée, filtre, recherche | À faire |
+| 2. Trois champs et stockage local | Livrée |
+| 3. Liste triée, filtre, recherche | Livrée, en attente de test |
 | 4. Rappels | À faire |
 | 5. Export de sauvegarde, installation | À faire |
 | 6. Mise en ligne sur GitHub Pages | À faire |
@@ -90,6 +90,29 @@ ici pour qu'il puisse le relire et le contester.
   (`navigator.storage.persist()`), après le premier ajout. Sans effet là où ce
   n'est pas pris en charge.
 
+Étape 3 :
+
+- **Deux groupes : « À traiter », puis « Traités ».** Un papier traité quitte la
+  liste de ce qu'il reste à faire mais reste consultable et retrouvable.
+- **Tri des papiers à traiter** : échéance la plus proche d'abord, donc les
+  retards en tête ; viennent ensuite les papiers sans date, du plus récent au
+  plus ancien. Les traités sont rangés du dernier traité au plus ancien.
+- **Les échéances proches sont dites en clair** : « En retard », « Aujourd'hui »,
+  « Demain », « Dans 5 jours » (jusqu'à 7 jours, comme le premier rappel de
+  l'étape 4), en rouge ou en orange. Au-delà, la date seule.
+- **Le bouton « traité » est un rond à cocher** au bout de chaque ligne, et un
+  bouton en toutes lettres dans la feuille du papier. Un message propose
+  « Annuler » pendant quelques secondes, au cas où le doigt aurait glissé.
+- **Le filtre ne montre que les catégories utilisées**, une seule à la fois, et
+  n'apparaît qu'à partir de deux catégories.
+- **La recherche fouille** l'organisme, la catégorie, le nom du fichier et la
+  date limite en toutes lettres (« décembre »), sans tenir compte des accents ni
+  des majuscules. Avec plusieurs mots, tous doivent être présents. Elle porte
+  aussi sur les papiers traités.
+- **L'en-tête compte ce qu'il reste à traiter**, plutôt que le total.
+- **Après un ajout ou une modification, le papier est amené à l'écran** et
+  signalé un instant ; si la recherche ou le filtre le cachaient, ils sont levés.
+
 ## Notes techniques
 
 À respecter dans les étapes suivantes.
@@ -105,7 +128,7 @@ ici pour qu'il puisse le relire et le contester.
   `PaperStore.list()`, `add(paper, file)`, `update(id, changes)`, `remove(id)`,
   `getFile(id)`, `requestPersistence()`. `app.js` ne touche jamais à IndexedDB.
 - **Base IndexedDB `mes-papiers`, version 1, deux tables** indexées par `id` :
-  - `papers` : la fiche `{ id, category, organisation, dueDate, done,
+  - `papers` : la fiche `{ id, category, organisation, dueDate, done, doneAt,
     fileName, type, size, createdAt, updatedAt, thumbnail }` ;
   - `files` : `{ id, type, data }`, le fichier lui-même, rangé à part pour que
     l'affichage de la liste ne charge pas toutes les photos en mémoire.
@@ -118,10 +141,15 @@ ici pour qu'il puisse le relire et le contester.
 - **Champs** : `category` est l'un de `impots`, `sante`, `logement`, `banque`,
   `energie`, `autre` (la liste et les libellés sont dans `app.js`). `dueDate`
   est `null` ou un jour au format `AAAA-MM-JJ`, sans heure ni fuseau.
-  `done` vaut `false` pour l'instant : il servira au bouton « traité » de
-  l'étape 3. `thumbnail` est une vignette JPEG de 320 px au plus, ou `null`.
+  `done` dit si le papier est traité ; `doneAt` est alors l'instant où il l'a
+  été (`null` sinon, et absent des fiches créées à l'étape 2).
+  `thumbnail` est une vignette JPEG de 320 px au plus, ou `null`.
 - **Formats acceptés** : images et PDF. Un PDF n'a pas de vignette et s'ouvre
   dans un nouvel onglet du navigateur.
+- **Tri, filtre et recherche se font en mémoire**, dans `app.js`, à chaque
+  affichage : pas d'index dans la base. `dueInfo()` est le seul endroit qui
+  décide si une échéance est en retard ou proche ; les rappels de l'étape 4
+  doivent s'appuyer dessus (`SOON_DAYS`).
 - **Validation maison** (`novalidate` + messages en français sous les champs),
   plutôt que les bulles du navigateur, qui s'affichent mal sur des cases
   masquées et suivent la langue du téléphone.

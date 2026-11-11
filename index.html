@@ -16,7 +16,7 @@
   <header class="app-header">
     <div class="app-header-inner">
       <h1>Mes papiers</h1>
-      <p id="count" class="count" aria-live="polite"></p>
+      <p id="count" class="count"></p>
     </div>
   </header>
 
@@ -38,7 +38,34 @@
       <p>Pour commencer, prendre un courrier en photo ou importer un fichier.</p>
     </section>
 
-    <ul id="list" class="paper-list" hidden></ul>
+    <!-- Recherche et filtre par catégorie. -->
+    <div id="toolbar" class="toolbar" hidden>
+      <div class="search">
+        <svg class="search-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="search" type="search" placeholder="Rechercher un papier" aria-label="Rechercher un papier"
+               autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+        <button id="search-clear" class="search-clear" type="button" aria-label="Effacer la recherche" hidden>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="filters" class="filters" role="group" aria-label="Filtrer par catégorie" hidden></div>
+    </div>
+
+    <div id="no-result" class="no-result" hidden>
+      <p>Aucun papier ne correspond.</p>
+      <button id="reset-view" class="btn btn-secondary" type="button">Tout afficher</button>
+    </div>
+
+    <!-- Les papiers à traiter d'abord, par échéance la plus proche. -->
+    <section id="todo-section" class="group" aria-labelledby="todo-title" hidden>
+      <h2 id="todo-title" class="group-title">À traiter <span id="todo-count" class="group-count"></span></h2>
+      <ul id="todo-list" class="paper-list"></ul>
+    </section>
+
+    <section id="done-section" class="group" aria-labelledby="done-title" hidden>
+      <h2 id="done-title" class="group-title">Traités <span id="done-count" class="group-count"></span></h2>
+      <ul id="done-list" class="paper-list"></ul>
+    </section>
 
   </main>
 
@@ -47,6 +74,12 @@
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       Ajouter un papier
     </button>
+  </div>
+
+  <!-- Message bref après une action, avec de quoi l'annuler. -->
+  <div id="toast" class="toast" role="status" hidden>
+    <p id="toast-text"></p>
+    <button id="toast-undo" class="toast-action" type="button">Annuler</button>
   </div>
 
   <!--
@@ -100,6 +133,7 @@
             <p id="preview-caption"></p>
             <button id="change-button" class="link-button" type="button">Changer</button>
           </div>
+          <p id="done-status" class="done-status" hidden></p>
         </div>
 
         <fieldset class="field">
@@ -125,6 +159,7 @@
         </div>
 
         <button id="save-button" class="btn btn-primary" type="submit">Ajouter</button>
+        <button id="done-toggle" class="btn btn-secondary" type="button" hidden>Marquer comme traité</button>
 
         <div id="delete-zone" class="delete-zone" hidden>
           <button id="delete-button" class="btn btn-danger-quiet" type="button">Supprimer ce papier</button>

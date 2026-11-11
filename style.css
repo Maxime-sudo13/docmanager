@@ -14,6 +14,7 @@
   --field-border: #8f8878; /* contour des champs de saisie */
   --danger: #a3261c;
   --on-danger: #ffffff;
+  --warn: #8f5400;         /* échéance dans la semaine */
   --shadow: 29 35 46;
 
   --radius: 16px;
@@ -35,6 +36,7 @@
     --field-border: #737b88;
     --danger: #ff9d92;
     --on-danger: #3b0d08;
+    --warn: #f0b458;
     --shadow: 0 0 0;
   }
 }
@@ -194,6 +196,139 @@ p {
   font-size: 0.9375rem;
 }
 
+/* ---------- Recherche et filtre ---------- */
+
+.toolbar {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.search {
+  position: relative;
+}
+
+.search input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 46px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 999px;
+  color: var(--ink);
+  font: inherit; /* 16 px au moins : sinon l'iPhone zoome à la saisie */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search input::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+/* On a notre propre croix pour effacer. */
+.search input::-webkit-search-cancel-button,
+.search input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  display: none;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+/* Une rangée de catégories qui défile sur le côté si elle ne tient pas. */
+.filters {
+  display: flex;
+  gap: 8px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 4px var(--gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
+.filter {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filter[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.no-result {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 40px 12px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.no-result .btn {
+  color: var(--ink);
+}
+
+.group-title {
+  margin: 20px 4px 8px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.group-count {
+  margin-left: 4px;
+  font-weight: 400;
+}
+
+.toolbar + .group,
+.no-result + .group {
+  margin-top: 12px;
+}
+
 /* ---------- Liste des papiers ---------- */
 
 .paper-list {
@@ -206,22 +341,86 @@ p {
 
 .paper {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 10px 12px 10px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+}
+
+/* Zone principale : toucher ouvre le papier. */
+.paper-open {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 10px 4px 10px 10px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.paper:active {
+.paper-open:active {
   background: var(--accent-soft);
+}
+
+/* Rond à cocher : marque le papier comme traité. */
+.paper-done {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  cursor: pointer;
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--field-border);
+  border-radius: 50%;
+  color: transparent;
+}
+
+.paper-done[aria-pressed="true"] .check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.paper-done:active .check {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Un papier traité s'efface un peu. */
+.paper.is-done .paper-title {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.paper.is-done .thumb {
+  opacity: 0.6;
+}
+
+/* Le papier qu'on vient d'ajouter ou de modifier est signalé un instant. */
+.paper.is-fresh {
+  animation: fresh 1.8s ease-out;
+}
+
+@keyframes fresh {
+  from {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
 }
 
 .thumb {
@@ -294,14 +493,20 @@ p {
   white-space: nowrap;
 }
 
+.paper-due[data-level="soon"] {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.paper-due[data-level="late"] {
+  color: var(--danger);
+  font-weight: 600;
+}
+
 .paper-meta {
   margin-top: 2px;
   color: var(--ink-soft);
   font-size: 0.875rem;
-}
-
-.paper-chevron {
-  color: var(--ink-soft);
 }
 
 /* ---------- Boutons ---------- */
@@ -397,6 +602,53 @@ p {
   font-size: 1.0625rem;
   box-shadow: 0 8px 20px rgb(var(--shadow) / 0.22);
   pointer-events: auto;
+}
+
+/* ---------- Message bref ---------- */
+
+.toast {
+  position: fixed;
+  right: var(--gutter);
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  left: var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  max-width: 26rem;
+  min-height: 52px;
+  margin: 0 auto;
+  padding: 4px 6px 4px 18px;
+  background: var(--ink);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgb(var(--shadow) / 0.3);
+  color: var(--paper);
+  font-size: 0.9375rem;
+}
+
+.toast p {
+  min-width: 0;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+
+.toast-action {
+  flex: none;
+  min-height: 44px;
+  padding: 0 12px;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.toast-action:focus-visible {
+  outline-color: var(--paper);
 }
 
 /* ---------- Feuille d'ajout ---------- */
@@ -568,6 +820,12 @@ p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.done-status {
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 /* ---------- Champs ---------- */
@@ -784,6 +1042,10 @@ p {
 
   .viewer[open] {
     animation: fade-in 0.16s ease-out;
+  }
+
+  .toast {
+    animation: sheet-in 0.2s ease-out;
   }
 }
 
