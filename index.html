@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-13a">
+  <link rel="stylesheet" href="style.css?v=2026-11-13b">
 </head>
 <body>
 
@@ -87,6 +87,16 @@
       <div class="tile tile-late"><span id="sum-late" class="tile-n">0</span><span class="tile-l">en retard</span></div>
       <div class="tile tile-week"><span id="sum-week" class="tile-n">0</span><span class="tile-l">cette semaine</span></div>
       <div class="tile tile-todo"><span id="sum-todo" class="tile-n">0</span><span class="tile-l">à traiter</span></div>
+    </div>
+
+    <!-- Rappel de sauvegarde : les papiers n'existent que sur cet appareil. -->
+    <div id="backup-reminder" class="backup-reminder" role="status" hidden>
+      <p class="backup-reminder-title">Pensez à sauvegarder vos papiers</p>
+      <p id="backup-reminder-text" class="hint"></p>
+      <div class="actions">
+        <button id="backup-reminder-later" class="btn btn-secondary" type="button">Plus tard</button>
+        <button id="backup-reminder-save" class="btn btn-primary" type="button">Sauvegarder</button>
+      </div>
     </div>
 
     <section id="empty" class="empty" hidden>
@@ -194,6 +204,15 @@
           <div class="preview-meta">
             <p id="preview-caption"></p>
             <button id="change-button" class="link-button" type="button">Changer</button>
+          </div>
+          <!-- Pages suivantes d'un courrier de plusieurs pages. -->
+          <div class="pages">
+            <div id="pages-list" class="pages-list"></div>
+            <label class="page-add">
+              <input id="page-input" class="visually-hidden" type="file" accept="image/*,application/pdf">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              Ajouter une page
+            </label>
           </div>
           <p id="done-status" class="done-status" hidden></p>
         </div>
@@ -307,6 +326,14 @@
         </p>
       </section>
 
+      <section aria-labelledby="theme-title">
+        <h3 id="theme-title" class="group-title">Apparence</h3>
+        <div id="theme-choice" class="theme-choice" role="radiogroup" aria-labelledby="theme-title">
+          <label class="chip"><input class="visually-hidden" type="radio" name="theme" value="light">Clair</label>
+          <label class="chip"><input class="visually-hidden" type="radio" name="theme" value="dark">Sombre</label>
+        </div>
+      </section>
+
       <section aria-labelledby="install-title">
         <h3 id="install-title" class="group-title">Installation</h3>
         <div class="status-card">
@@ -330,9 +357,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-13a"></script>
-  <script src="reminders.js?v=2026-11-13a"></script>
-  <script src="backup.js?v=2026-11-13a"></script>
-  <script src="app.js?v=2026-11-13a"></script>
+  <script src="store.js?v=2026-11-13b"></script>
+  <script src="reminders.js?v=2026-11-13b"></script>
+  <script src="backup.js?v=2026-11-13b"></script>
+  <script src="app.js?v=2026-11-13b"></script>
 </body>
 </html>

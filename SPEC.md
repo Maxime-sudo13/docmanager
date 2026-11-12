@@ -60,7 +60,8 @@ la suivante.
 | 4. Rappels | Livrée |
 | 5. Export de sauvegarde, installation | Livrée |
 | 6. Mise en ligne sur GitHub Pages | Livrée : https://maxime-sudo13.github.io/docmanager/ |
-| 7. Retravail du design | Livrée, en attente de test |
+| 7. Retravail du design | Livrée |
+| 8. Plusieurs pages, apparence, rappel de sauvegarde | Livrée, en attente de test |
 
 ## Retours de l'utilisateur
 
@@ -245,6 +246,22 @@ ici pour qu'il puisse le relire et le contester.
   la page vide ressemblait trop à l'ancienne version (retour de
   l'utilisateur, 12 novembre 2026).
 
+Étape 8 (13 novembre 2026, demandée par l'utilisateur ; les échéances qui
+reviennent sont remises à plus tard) :
+
+- **Plusieurs pages par papier.** « Ajouter une page » sous l'aperçu, à
+  l'ajout comme dans la fiche ; chaque page se voit et se retire. Rien n'est
+  écrit avant « Ajouter » ou « Enregistrer ». Les photos sont réduites comme la
+  première page. La liste affiche « 3 pages ».
+- **Apparence : Clair ou Sombre**, dans « ⋮ ». Clair par défaut, quel que soit
+  le réglage du téléphone ; le choix est gardé par l'appareil.
+- **Rappel de sauvegarde visible** : un encadré en haut de la liste quand une
+  sauvegarde est conseillée (mêmes règles que le point sur « ⋮ »).
+  « Sauvegarder » ouvre la feuille et lance l'export ; « Plus tard » le masque
+  7 jours.
+- **Plan de commercialisation** : rédigé à part, dans un document Claude Docs
+  (pas dans ce dépôt public).
+
 ## Ce qu'il reste pour la mise en ligne
 
 1. **Historique nettoyé, fait le 12 novembre 2026.** L'adresse personnelle de
@@ -284,6 +301,14 @@ ici pour qu'il puisse le relire et le contester.
     que sa propre mise à jour ne passe jamais par le cache du navigateur.
   Pour passer des anciennes versions à celle-ci, il faut toucher
   « Recharger » une ou deux fois, une seule fois.
+- **Pages suivantes** : rangées dans la table `files` sous la clé
+  `<id du papier>#<suffixe>`, avec `paperId` ; la fiche garde leur ordre dans
+  `extraPages`. `PaperStore.addPage`, `removePage`, `getPages` ; `remove`
+  efface aussi les pages. Dans la sauvegarde : `pages: [{ file, type }]` par
+  papier, fichiers `…-page-2.pdf`.
+- **Réglages de l'appareil** dans `localStorage` : `mes-papiers.theme`,
+  `mes-papiers.rappel-sauvegarde` (fin du « Plus tard »), en plus de la date
+  de dernière sauvegarde.
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la
   règle de sécurité autorise `font-src 'self' file:`.
 - **Volet de droite** : sur grand écran, la fiche d'un papier est le même

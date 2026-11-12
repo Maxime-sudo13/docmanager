@@ -66,6 +66,11 @@ const PaperStore = (function () {
     });
   }
 
+  // Toutes les clés « <id>#… » : les pages supplémentaires d'un papier.
+  function pageRange(id) {
+    return IDBKeyRange.bound(id + '#', id + '#\uffff');
+  }
+
   function toPaper(record) {
     const paper = Object.assign({}, record);
     paper.thumbnail = record.thumbnail
@@ -118,12 +123,77 @@ const PaperStore = (function () {
       return toPaper(record);
     },
 
-    /** Supprime une fiche et son fichier. */
+    /** Supprime une fiche, son fichier et ses pages supplémentaires. */
     async remove(id) {
       await transaction([PAPERS, FILES], 'readwrite', (tx) => {
         tx.objectStore(PAPERS).delete(id);
         tx.objectStore(FILES).delete(id);
+        tx.objectStore(FILES).delete(pageRange(id));
       });
+    },
+
+    /*
+     * Pages supplémentaires d'un papier (un courrier de plusieurs pages).
+     * Chacune est rangée dans « files » sous la clé « <id du papier>#<page> » ;
+     * la fiche garde leur ordre dans `extraPages` (liste de ces clés).
+     */
+
+    /** Ajoute une page à la fin. Renvoie la fiche à jour. */
+    async addPage(id, blob) {
+      const data = await blob.arrayBuffer();
+      const key = id + '#' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const record = await transaction([PAPERS, FILES], 'readwrite', (tx) => {
+        const papers = tx.objectStore(PAPERS);
+        const request = papers.get(id);
+        let updated = null;
+        request.onsuccess = () => {
+          if (!request.result) {
+            tx.abort();
+            return;
+          }
+          updated = request.result;
+          updated.extraPages = (updated.extraPages || []).concat(key);
+          papers.put(updated);
+          tx.objectStore(FILES).add({ id: key, paperId: id, type: blob.type || '', data });
+        };
+        return () => updated;
+      });
+      return toPaper(record);
+    },
+
+    /** Retire une page supplémentaire. Renvoie la fiche à jour. */
+    async removePage(id, key) {
+      const record = await transaction([PAPERS, FILES], 'readwrite', (tx) => {
+        const papers = tx.objectStore(PAPERS);
+        const request = papers.get(id);
+        let updated = null;
+        request.onsuccess = () => {
+          if (!request.result) {
+            tx.abort();
+            return;
+          }
+          updated = request.result;
+          updated.extraPages = (updated.extraPages || []).filter((k) => k !== key);
+          papers.put(updated);
+          tx.objectStore(FILES).delete(key);
+        };
+        return () => updated;
+      });
+      return toPaper(record);
+    },
+
+    /** Les pages supplémentaires, dans l'ordre : [{ key, blob }]. */
+    async getPages(paper) {
+      const keys = paper.extraPages || [];
+      if (keys.length === 0) return [];
+      const records = await transaction(FILES, 'readonly', (tx) => {
+        const store = tx.objectStore(FILES);
+        const requests = keys.map((key) => store.get(key));
+        return () => requests.map((request) => request.result);
+      });
+      return records
+        .filter(Boolean)
+        .map((record) => ({ key: record.id, blob: new Blob([record.data], { type: record.type }) }));
     },
 
     /** Le fichier d'un papier, ou null s'il est introuvable. */
