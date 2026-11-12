@@ -879,6 +879,15 @@
     const slug = normalize(paper.organisation)
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+    // Application installée sur iPhone : la feuille de partage ne propose pas
+    // le Calendrier pour un fichier .ics. On ouvre plutôt l'évènement
+    // lui-même, ce qu'iOS sait présenter avec « Ajouter au calendrier ».
+    // S'il refuse, on revient à la feuille de partage (« Enregistrer dans
+    // Fichiers », puis ouvrir le fichier depuis l'app Fichiers).
+    if (navigator.standalone === true) {
+      const opened = window.open('data:text/calendar;charset=utf-8,' + encodeURIComponent(text), '_blank');
+      if (opened) return;
+    }
     saveFile(
       new Blob([text], { type: 'text/calendar;charset=utf-8' }),
       'date-limite-' + (slug || 'papier') + '.ics'
