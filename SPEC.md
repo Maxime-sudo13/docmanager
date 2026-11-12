@@ -220,7 +220,10 @@ ici pour qu'il puisse le relire et le contester.
 - **Deux polices embarquées**, Fraunces (titres) et Figtree (texte), sous
   licence SIL OFL, dans `fonts/`. Environ 100 Ko en tout, gardées hors ligne.
 - **Couleurs** : papier crème et encre bleu nuit ; chaque catégorie a sa
-  couleur. **Toujours en clair** : le thème sombre automatique a été retiré
+  couleur. Six teintes bien séparées, à la demande de l'utilisateur (12 novembre
+  2026) : impôts bleu, santé vert, logement orange, banque framboise,
+  énergie jaune (texte foncé sur sa bande), autre gris.
+  **Toujours en clair** : le thème sombre automatique a été retiré
   le 12 novembre 2026, l'utilisateur (iPhone en mode sombre) voulant le
   rendu crème qu'il avait choisi. Le remettre en option si demandé.
 - **Chaque papier est une fiche** avec une tranche de couleur sur le bord
