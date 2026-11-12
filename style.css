@@ -46,12 +46,13 @@
   --shadow: 60 45 20;
 
   /* Couleurs des catégories. */
-  --c-impots: #3a5f9e;
-  --c-sante: #2f7d5b;
-  --c-logement: #a35d32;
-  --c-banque: #6b4fa3;
-  --c-energie: #b07c0a;
-  --c-autre: #7c7a74;
+  /* Six teintes bien séparées sur le cercle des couleurs. */
+  --c-impots: #2c5fd4;   /* bleu */
+  --c-sante: #1f9a5c;    /* vert */
+  --c-logement: #e2701c; /* orange */
+  --c-banque: #c42d74;   /* framboise */
+  --c-energie: #e9b400;  /* jaune */
+  --c-autre: #7c7a74;    /* gris */
 
   /* Cases du résumé. */
   --tile-late: #f8ddd6;
@@ -561,6 +562,11 @@ p {
   place-items: center;
   height: 2rem;
   color: var(--category);
+}
+
+/* Sur le jaune, le blanc se lit mal : texte foncé. */
+.cal[data-category="energie"]:not(.cal-late) .cal-m {
+  color: #3d2f00;
 }
 
 .cal-late {
