@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-12">
+  <link rel="stylesheet" href="style.css?v=2026-11-12b">
 </head>
 <body>
 
@@ -82,6 +82,13 @@
     <!-- Affiché seulement pendant un essai avec une date simulée (voir README). -->
     <p id="simulated-date" class="notice notice-info" hidden></p>
 
+    <!-- Résumé : ce qui presse. -->
+    <div id="summary" class="summary" hidden>
+      <div class="tile tile-late"><span id="sum-late" class="tile-n">0</span><span class="tile-l">en retard</span></div>
+      <div class="tile tile-week"><span id="sum-week" class="tile-n">0</span><span class="tile-l">cette semaine</span></div>
+      <div class="tile tile-todo"><span id="sum-todo" class="tile-n">0</span><span class="tile-l">à traiter</span></div>
+    </div>
+
     <section id="empty" class="empty" hidden>
       <svg class="empty-art" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
         <rect class="art-back" x="36" y="16" width="58" height="80" rx="6" transform="rotate(9 65 56)"/>
@@ -92,13 +99,6 @@
       <h2>Aucun papier pour l'instant</h2>
       <p>Pour commencer, prendre un courrier en photo ou importer un fichier.</p>
     </section>
-
-    <!-- Résumé : ce qui presse. -->
-    <div id="summary" class="summary" hidden>
-      <div class="tile tile-late"><span id="sum-late" class="tile-n">0</span><span class="tile-l">en retard</span></div>
-      <div class="tile tile-week"><span id="sum-week" class="tile-n">0</span><span class="tile-l">cette semaine</span></div>
-      <div class="tile tile-todo"><span id="sum-todo" class="tile-n">0</span><span class="tile-l">à traiter</span></div>
-    </div>
 
     <!-- Recherche et filtre par catégorie. -->
     <div id="toolbar" class="toolbar" hidden>
@@ -330,9 +330,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-12"></script>
-  <script src="reminders.js?v=2026-11-12"></script>
-  <script src="backup.js?v=2026-11-12"></script>
-  <script src="app.js?v=2026-11-12"></script>
+  <script src="store.js?v=2026-11-12b"></script>
+  <script src="reminders.js?v=2026-11-12b"></script>
+  <script src="backup.js?v=2026-11-12b"></script>
+  <script src="app.js?v=2026-11-12b"></script>
 </body>
 </html>

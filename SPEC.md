@@ -229,11 +229,13 @@ ici pour qu'il puisse le relire et le contester.
 - **Résumé en trois cases** sous le titre : en retard, cette semaine (7
   jours), à traiter. Une case sans rien à signaler s'éteint. Il remplace le
   compteur de l'en-tête. La date du jour s'affiche sous le titre.
-- **Ordinateur (à partir de 1100 px de large) : trois volets.** À gauche, les
+- **Ordinateur (à partir de 1000 px de large) : trois volets.** À gauche, les
   catégories avec leur nombre de papiers, « Ajouter un papier », « Rappels »
   et « Sauvegarde ». Au milieu, la liste. À droite, la fiche du papier choisi,
-  qui ne masque plus la liste ; Échap la ferme. Entre 640 et 1100 px, la mise
-  en page du téléphone, centrée.
+  qui ne masque plus la liste ; Échap la ferme. Entre 640 et 1000 px, la mise
+  en page du téléphone, centrée. Le résumé s'affiche même sans papier, sinon
+  la page vide ressemblait trop à l'ancienne version (retour de
+  l'utilisateur, 12 novembre 2026).
 
 ## Ce qu'il reste pour la mise en ligne
 

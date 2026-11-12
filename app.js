@@ -11,7 +11,7 @@
   const PHOTO_MAX_SIDE = 2400;    // pixels, plus grand côté d'une photo enregistrée
   const TOAST_DELAY = 6000;       // millisecondes
   // Au-delà de cette largeur, l'écran est découpé en trois volets (voir style.css).
-  const WIDE = window.matchMedia('(min-width: 1100px)');
+  const WIDE = window.matchMedia('(min-width: 1000px)');
   const REMINDER_CHECK_DELAY = 60 * 60 * 1000; // les rappels sont revérifiés toutes les heures
   const BACKUP_KEY = 'mes-papiers.derniere-sauvegarde'; // réglage gardé par le navigateur
   const BACKUP_MAX_AGE = 30 * 24 * 60 * 60 * 1000;      // au-delà, une sauvegarde est conseillée
@@ -469,7 +469,7 @@
       if (days < 0) late++;
       else if (days <= Reminders.WEEK_DAYS) week++;
     }
-    els.summary.hidden = papers.length === 0;
+    els.summary.hidden = false; // affiché même vide : « 0 en retard » est une bonne nouvelle
     els.sumLate.textContent = late;
     els.sumWeek.textContent = week;
     els.sumTodo.textContent = pending;
