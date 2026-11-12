@@ -10,11 +10,6 @@
   const THUMBNAIL_MAX_SIDE = 320; // pixels, plus grand côté de la vignette
   const PHOTO_MAX_SIDE = 2400;    // pixels, plus grand côté d'une photo enregistrée
   const TOAST_DELAY = 6000;       // millisecondes
-  // Dans l'application installée sur iPhone, iOS n'offre aucun moyen fiable de
-  // remettre un évènement au Calendrier (ni téléchargement, ni feuille de
-  // partage, ni ouverture directe : essayés le 12 novembre 2026). L'option
-  // « Ajouter au calendrier » n'y est donc pas proposée.
-  const CALENDAR_AVAILABLE = navigator.standalone !== true;
   // Au-delà de cette largeur, l'écran est découpé en trois volets (voir style.css).
   const WIDE = window.matchMedia('(min-width: 1000px)');
   const REMINDER_CHECK_DELAY = 60 * 60 * 1000; // les rappels sont revérifiés toutes les heures
@@ -117,8 +112,7 @@
     organisationError: $('organisation-error'),
     dueDate: $('due-date'),
     dueDateError: $('due-date-error'),
-    calendarRow: $('calendar-row'),
-    calendarButton: $('calendar-button'),
+    reminderRow: $('reminder-row'),
     saveButton: $('save-button'),
     doneToggle: $('done-toggle'),
     deleteZone: $('delete-zone'),
@@ -885,35 +879,15 @@
     }
   }
 
-  /* ---------- Rappels : calendrier ---------- */
-
-  // Télécharge un fichier .ics : l'ouvrir ajoute l'échéance à l'agenda du
-  // téléphone, avec une alerte 7 jours avant et une autre la veille.
-  function downloadCalendar(paper) {
-    const text = Reminders.toICS(paper, categoryLabel(paper.category));
-    if (!text) return;
-    const slug = normalize(paper.organisation)
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    saveFile(
-      new Blob([text], { type: 'text/calendar;charset=utf-8' }),
-      'date-limite-' + (slug || 'papier') + '.ics'
-    );
-  }
-
   // Après l'enregistrement d'une date limite : propose d'activer les
-  // notifications, sinon d'ajouter l'échéance au calendrier.
+  // notifications, ou confirme les rappels si elles le sont déjà.
   function offerReminders(paper) {
     if (!paper || paper.done || Reminders.upcoming([paper]).length === 0) return;
     const state = notificationState();
     if (state === 'default') {
       showToast('Être prévenu 7 jours avant et la veille ?', enableNotifications, 'Activer');
-    } else if (!CALENDAR_AVAILABLE) {
-      if (state === 'granted') showToast('Rappels prévus 7 jours avant et la veille.');
     } else if (state === 'granted') {
-      showToast('Rappels prévus 7 jours avant et la veille.', () => downloadCalendar(paper), 'Calendrier');
-    } else {
-      showToast("Pour un rappel, ajouter l'échéance au calendrier.", () => downloadCalendar(paper), 'Calendrier');
+      showToast('Rappels prévus 7 jours avant et la veille.');
     }
   }
 
@@ -1283,14 +1257,12 @@
     setBusy(false);
   }
 
-  // « Ajouter au calendrier » n'a de sens que pour un papier enregistré, à
-  // traiter, et qui a une date limite.
-  function renderCalendarRow() {
-    els.calendarButton.hidden = !CALENDAR_AVAILABLE;
-    els.calendarRow.hidden = !(
+  // « Rappels 7 jours avant et la veille », sous la date limite, dès qu'une
+  // date est saisie pour un papier à traiter.
+  function renderReminderRow() {
+    els.reminderRow.hidden = !(
       sheet &&
-      sheet.mode === 'edit' &&
-      !sheet.paper.done &&
+      !(sheet.mode === 'edit' && sheet.paper.done) &&
       els.dueDate.value !== ''
     );
   }
@@ -1335,7 +1307,7 @@
     els.doneStatus.hidden = true;
     els.doneToggle.hidden = true;
     els.deleteZone.hidden = true;
-    renderCalendarRow();
+    renderReminderRow();
     showStep('choose');
     showSheet(false);
   }
@@ -1376,7 +1348,7 @@
     if (radio) radio.checked = true;
     els.organisation.value = paper.organisation;
     els.dueDate.value = paper.dueDate || '';
-    renderCalendarRow();
+    renderReminderRow();
     els.previewCaption.textContent =
       kindLabel(paper.type) +
       ' · ' +
@@ -1411,7 +1383,6 @@
   function setBusy(value) {
     busy = value;
     els.saveButton.disabled = value;
-    els.calendarButton.disabled = value;
     els.doneToggle.disabled = value;
     els.deleteYes.disabled = value;
   }
@@ -1497,38 +1468,6 @@
       await refresh();
       reveal(id);
       if (fields.reminded) offerReminders(papers.find((paper) => paper.id === id));
-    } catch (error) {
-      console.error(error);
-      showSheetError(saveErrorMessage(error));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // Depuis la feuille : enregistre les champs s'ils ont changé, puis
-  // télécharge le fichier de calendrier.
-  async function onCalendar() {
-    if (!sheet || sheet.mode !== 'edit' || busy) return;
-    els.sheetError.hidden = true;
-    const fields = readFields();
-    if (!fields || !fields.dueDate) return;
-
-    setBusy(true);
-    try {
-      let paper = sheet.paper;
-      const changed =
-        fields.category !== paper.category ||
-        fields.organisation !== paper.organisation ||
-        fields.dueDate !== paper.dueDate;
-      if (changed) {
-        paper = await PaperStore.update(
-          paper.id,
-          Object.assign(fields, { updatedAt: new Date().toISOString() })
-        );
-        sheet.paper = paper;
-        await refresh();
-      }
-      downloadCalendar(paper);
     } catch (error) {
       console.error(error);
       showSheetError(saveErrorMessage(error));
@@ -1688,7 +1627,6 @@
   document.getElementById('theme-choice').addEventListener('change', (event) => {
     if (event.target.name === 'theme') chooseTheme(event.target.value);
   });
-  if (!CALENDAR_AVAILABLE) document.getElementById('calendar-hint').hidden = true;
 
   // Recherche et filtre.
   els.search.addEventListener('input', () => {
@@ -1744,9 +1682,8 @@
   );
   els.dueDate.addEventListener('input', () => {
     setFieldError(els.dueDateError, els.dueDate, false);
-    renderCalendarRow();
+    renderReminderRow();
   });
-  els.calendarButton.addEventListener('click', onCalendar);
 
   els.doneToggle.addEventListener('click', onDoneToggle);
   els.deleteButton.addEventListener('click', () => showDeleteConfirm(true));

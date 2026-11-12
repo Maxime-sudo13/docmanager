@@ -32,8 +32,9 @@ de courrier.
 
 - Catégories fixes.
 - Une seule date limite par papier.
-- Rappels : notification locale, plus un bouton « Ajouter au calendrier »
-  (fichier .ics) en repli, car les notifications PWA sont peu fiables sur
+- Rappels : notification locale. Le bouton « Ajouter au calendrier » (fichier
+  .ics) prévu en repli a été retiré le 13 novembre 2026 à la demande de
+  l'utilisateur : il ne fonctionnait pas dans l'application installée sur
   iPhone.
 - Export de sauvegarde en un fichier.
 
@@ -139,11 +140,8 @@ ici pour qu'il puisse le relire et le contester.
   suivante, tant que la date limite n'est pas dépassée. Sur Android, une fois
   l'application installée, le navigateur peut en plus la réveiller de temps en
   temps en arrière-plan ; c'est demandé, sans garantie.
-- **Le calendrier est le rappel sûr.** « Ajouter au calendrier » crée un
-  évènement sur la journée de la date limite, avec deux alertes à 9 h : 7 jours
-  avant et la veille. C'est l'agenda du téléphone qui prévient, application
-  fermée ou non. Rajouter le même papier après un changement de date met à jour
-  l'évènement au lieu d'en créer un second.
+- **Le calendrier (fichier .ics) a été retiré** le 13 novembre 2026 : voir
+  « Points à surveiller ».
 - **Un rappel n'est donné qu'une fois**, jamais pour un papier traité, jamais
   pour une échéance dépassée (la liste l'affiche déjà en rouge). Changer la
   date limite relance les deux rappels.
@@ -197,7 +195,7 @@ ici pour qu'il puisse le relire et le contester.
   installation ».
 - **Dans l'application installée sur iPhone, les fichiers sont remis par la
   feuille de partage** (« Enregistrer dans Fichiers »), le téléchargement n'y
-  existant pas. Cela vaut pour la sauvegarde et pour le fichier de calendrier.
+  existant pas. Cela vaut pour la sauvegarde.
 - **L'en-tête** : avec deux boutons, le compteur se réduit à « Tout traité »
   et s'efface sur les écrans de moins de 340 px.
 
@@ -275,8 +273,8 @@ reviennent sont remises à plus tard) :
 3. **Deux réglages de l'utilisateur sur GitHub** : rendre le dépôt public
    (Settings, General, Danger Zone), puis activer Pages (Settings, Pages,
    « Deploy from a branch », branche `main`, dossier racine).
-4. **Vérifier en ligne**, sur téléphone : installation, notifications, fichier
-   de calendrier, ouverture d'un PDF, sauvegarde.
+4. **Vérifier en ligne**, sur téléphone : installation, notifications,
+   ouverture d'un PDF, sauvegarde.
 
 ## Notes techniques
 
@@ -366,7 +364,7 @@ reviennent sont remises à plus tard) :
   « aujourd'hui » (`Reminders.today()`), du nombre de jours restants
   (`daysUntil()`) et du seuil de 7 jours (`WEEK_DAYS`) : la liste et les
   rappels s'appuient dessus. Il décide des rappels dus (`pending()`), les
-  donne (`check(notify)`) et fabrique le fichier `.ics` (`toICS()`).
+  donne (`check(notify)`).
 - **`sw.js`, le service worker, fait deux choses.** Les rappels : il affiche
   les notifications (sur Android, une page n'a pas le droit de le faire
   elle-même), ouvre la fiche quand on en touche une, et répond à la
@@ -401,17 +399,16 @@ reviennent sont remises à plus tard) :
   donc la mise en ligne (étape 6) ; sur iPhone il faut en plus que
   l'application soit installée sur l'écran d'accueil (étape 5). D'ici là, elles
   ne se vérifient que sur ordinateur, en `localhost`.
-- **Calendrier sur iPhone, application installée : option retirée**
-  (12 novembre 2026, à la demande de l'utilisateur). Ni la feuille de partage,
-  ni l'ouverture directe de l'évènement (page blanche), ni « Enregistrer dans
-  Fichiers » ne permettaient de l'ajouter au Calendrier. `CALENDAR_AVAILABLE`
-  dans `app.js` masque le bouton, l'action « Calendrier » du message et la
-  phrase de la feuille « Rappels ». L'option reste dans Safari, sur Android
-  et sur ordinateur (non vérifiée sur Android). Google Agenda est connu pour
-  ignorer les alertes d'un fichier importé et appliquer les siennes.
+- **« Ajouter au calendrier » retiré partout** (13 novembre 2026, à la
+  demande de l'utilisateur). Dans l'application installée sur iPhone, aucune
+  voie ne marchait (feuille de partage sans Calendrier, ouverture directe sur
+  une page blanche, fichier introuvable dans Fichiers) ; l'utilisateur a
+  préféré retirer l'option aussi sur ordinateur. Les rappels passent
+  uniquement par les notifications. Sous la date limite reste la phrase
+  « Rappels 7 jours avant et la veille ».
 - **Installation sur téléphone** : elle demande une adresse en `https`, donc
   la mise en ligne (étape 6). Vérifiée ici sur ordinateur seulement.
-- **Feuille de partage sur iPhone** (sauvegarde, calendrier) : écrite d'après
+- **Feuille de partage sur iPhone** (sauvegarde) : écrite d'après
   la documentation et vérifiée en simulation, jamais sur un vrai iPhone.
 - **Taille de la sauvegarde** : l'archive est assemblée par le navigateur
   avant d'être remise. Sans souci pour quelques centaines de papiers ; à
