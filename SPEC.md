@@ -376,12 +376,13 @@ ici pour qu'il puisse le relire et le contester.
   donc la mise en ligne (étape 6) ; sur iPhone il faut en plus que
   l'application soit installée sur l'écran d'accueil (étape 5). D'ici là, elles
   ne se vérifient que sur ordinateur, en `localhost`.
-- **Fichier `.ics` sur iPhone, application installée** (12 novembre 2026) :
-  la feuille de partage ne proposait pas le Calendrier. Essai : ouvrir
-  l'évènement en `data:text/calendar` dans une nouvelle fenêtre, la feuille
-  de partage restant le repli. Résultat à confirmer par l'utilisateur ;
-  contournement sûr : « Enregistrer dans Fichiers », puis ouvrir le fichier
-  depuis l'app Fichiers. Android reste à vérifier. Google Agenda est connu pour
+- **Calendrier sur iPhone, application installée : option retirée**
+  (12 novembre 2026, à la demande de l'utilisateur). Ni la feuille de partage,
+  ni l'ouverture directe de l'évènement (page blanche), ni « Enregistrer dans
+  Fichiers » ne permettaient de l'ajouter au Calendrier. `CALENDAR_AVAILABLE`
+  dans `app.js` masque le bouton, l'action « Calendrier » du message et la
+  phrase de la feuille « Rappels ». L'option reste dans Safari, sur Android
+  et sur ordinateur (non vérifiée sur Android). Google Agenda est connu pour
   ignorer les alertes d'un fichier importé et appliquer les siennes.
 - **Installation sur téléphone** : elle demande une adresse en `https`, donc
   la mise en ligne (étape 6). Vérifiée ici sur ordinateur seulement.
