@@ -27,6 +27,20 @@
     { id: 'autre', label: 'Autre' },
   ];
 
+  // Icônes des catégories (dessin au trait, couleur de la catégorie).
+  const ICON = (path) =>
+    '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+    path +
+    '</svg>';
+  const CATEGORY_ICONS = {
+    impots: ICON('<path d="M4 20h16M6 20v-9M10 20v-9M14 20v-9M18 20v-9M3 9l9-5 9 5z"/>'),
+    sante: ICON('<path d="M12 20s-7-4.3-7-9.5A4 4 0 0 1 12 8a4 4 0 0 1 7 2.5C19 15.7 12 20 12 20z"/>'),
+    logement: ICON('<path d="M4 11l8-6 8 6v9H4zM10 20v-5h4v5"/>'),
+    banque: ICON('<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>'),
+    energie: ICON('<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>'),
+    autre: ICON('<path d="M7.5 3.5H14l5 5v10a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5V6a2.5 2.5 0 0 1 2.5-2.5z"/><path d="M14 3.5V7a1.5 1.5 0 0 0 1.5 1.5H19"/>'),
+  };
+
   const CHECK_ICON =
     '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -346,8 +360,12 @@
     block.setAttribute('aria-hidden', 'true');
     const date = parseDay(paper.dueDate);
     if (!date) {
+      // Sans date limite : la bande de couleur reste, avec l'icône de la
+      // catégorie à la place du jour.
       block.classList.add('cal-none');
-      block.append(el('span', 'cal-m', ' '), el('span', 'cal-d', '–'));
+      const icon = el('span', 'cal-icon');
+      icon.innerHTML = CATEGORY_ICONS[paper.category] || CATEGORY_ICONS.autre;
+      block.append(el('span', 'cal-m', 'Sans date'), icon);
       return block;
     }
     if (due && due.level === 'late') block.classList.add('cal-late');
