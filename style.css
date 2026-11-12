@@ -239,13 +239,6 @@ p {
 .tile-week { background: var(--tile-week); color: var(--tile-week-ink); }
 .tile-todo { background: var(--tile-todo); color: var(--tile-todo-ink); }
 
-/* Rien en retard ou rien cette semaine : la case s'éteint. */
-.summary:not(.has-late) .tile-late,
-.summary:not(.has-week) .tile-week {
-  background: var(--paper);
-  color: var(--ink-soft);
-}
-
 /* ---------- Contenu ---------- */
 
 .app-main {
@@ -556,8 +549,18 @@ p {
   font-weight: 600;
 }
 
-.cal-none .cal-d {
-  color: var(--ink-soft);
+/* Sans date limite : « Sans date » dans la bande, l'icône de la catégorie
+   à la place du jour. */
+.cal-none .cal-m {
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+}
+
+.cal-icon {
+  display: grid;
+  place-items: center;
+  height: 2rem;
+  color: var(--category);
 }
 
 .cal-late {

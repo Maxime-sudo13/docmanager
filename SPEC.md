@@ -226,10 +226,13 @@ ici pour qu'il puisse le relire et le contester.
 - **Chaque papier est une fiche** avec une tranche de couleur sur le bord
   (sa catégorie) et un petit calendrier : le mois en haut, le jour en grand,
   l'année si ce n'est pas celle en cours, en rouge si l'échéance est passée.
+  Sans date limite : « Sans date » dans la bande de couleur, et l'icône de la
+  catégorie à la place du jour.
   La vignette de la photo n'est plus dans la liste : elle reste en tête de la
   fiche du papier. La date sans urgence n'est plus répétée en toutes lettres.
 - **Résumé en trois cases** sous le titre : en retard, cette semaine (7
-  jours), à traiter. Une case sans rien à signaler s'éteint. Il remplace le
+  jours), à traiter. Les trois cases gardent toujours leurs couleurs, même à
+  0 (demande de l'utilisateur). Il remplace le
   compteur de l'en-tête. La date du jour s'affiche sous le titre.
 - **Ordinateur (à partir de 1000 px de large) : trois volets.** À gauche, les
   catégories avec leur nombre de papiers, « Ajouter un papier », « Rappels »
