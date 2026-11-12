@@ -26,9 +26,10 @@
   font-display: swap;
 }
 
-/* Thème « Papeterie » : papier crème, encre bleu nuit. */
+/* Thème « Papeterie » : papier crème, encre bleu nuit. Toujours clair,
+   même quand le téléphone est en mode sombre (choix de l'utilisateur). */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   --paper: #f3eee4;        /* fond de page, ton papier */
   --surface: #fffcf6;      /* cartes et feuilles */
@@ -64,38 +65,6 @@
   --gutter: 16px;
   --font-ui: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-title: "Fraunces", ui-serif, Georgia, serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #161a22;
-    --surface: #1f2430;
-    --ink: #efe9dd;
-    --ink-soft: #a7a397;
-    --line: #2f3543;
-    --accent: #a9bde6;
-    --on-accent: #131b2e;
-    --accent-soft: #283149;
-    --field-border: #5a6070;
-    --danger: #ff9d8e;
-    --on-danger: #3b0d08;
-    --warn: #f2bb5f;
-    --shadow: 0 0 0;
-
-    --c-impots: #7d9ee0;
-    --c-sante: #5cbf8f;
-    --c-logement: #e09466;
-    --c-banque: #a98ae0;
-    --c-energie: #e3b443;
-    --c-autre: #a4a19a;
-
-    --tile-late: #43221f;
-    --tile-late-ink: #ffb5a8;
-    --tile-week: #3d301a;
-    --tile-week-ink: #f5cd85;
-    --tile-todo: #26304a;
-    --tile-todo-ink: #c3d2f2;
-  }
 }
 
 *,

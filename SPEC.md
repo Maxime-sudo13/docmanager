@@ -220,7 +220,9 @@ ici pour qu'il puisse le relire et le contester.
 - **Deux polices embarquées**, Fraunces (titres) et Figtree (texte), sous
   licence SIL OFL, dans `fonts/`. Environ 100 Ko en tout, gardées hors ligne.
 - **Couleurs** : papier crème et encre bleu nuit ; chaque catégorie a sa
-  couleur ; un thème sombre assorti suit le réglage du téléphone.
+  couleur. **Toujours en clair** : le thème sombre automatique a été retiré
+  le 12 novembre 2026, l'utilisateur (iPhone en mode sombre) voulant le
+  rendu crème qu'il avait choisi. Le remettre en option si demandé.
 - **Chaque papier est une fiche** avec une tranche de couleur sur le bord
   (sa catégorie) et un petit calendrier : le mois en haut, le jour en grand,
   l'année si ce n'est pas celle en cours, en rouge si l'échéance est passée.
