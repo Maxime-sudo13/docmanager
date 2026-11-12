@@ -10,6 +10,11 @@
   const THUMBNAIL_MAX_SIDE = 320; // pixels, plus grand côté de la vignette
   const PHOTO_MAX_SIDE = 2400;    // pixels, plus grand côté d'une photo enregistrée
   const TOAST_DELAY = 6000;       // millisecondes
+  // Dans l'application installée sur iPhone, iOS n'offre aucun moyen fiable de
+  // remettre un évènement au Calendrier (ni téléchargement, ni feuille de
+  // partage, ni ouverture directe : essayés le 12 novembre 2026). L'option
+  // « Ajouter au calendrier » n'y est donc pas proposée.
+  const CALENDAR_AVAILABLE = navigator.standalone !== true;
   // Au-delà de cette largeur, l'écran est découpé en trois volets (voir style.css).
   const WIDE = window.matchMedia('(min-width: 1000px)');
   const REMINDER_CHECK_DELAY = 60 * 60 * 1000; // les rappels sont revérifiés toutes les heures
@@ -879,15 +884,6 @@
     const slug = normalize(paper.organisation)
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
-    // Application installée sur iPhone : la feuille de partage ne propose pas
-    // le Calendrier pour un fichier .ics. On ouvre plutôt l'évènement
-    // lui-même, ce qu'iOS sait présenter avec « Ajouter au calendrier ».
-    // S'il refuse, on revient à la feuille de partage (« Enregistrer dans
-    // Fichiers », puis ouvrir le fichier depuis l'app Fichiers).
-    if (navigator.standalone === true) {
-      const opened = window.open('data:text/calendar;charset=utf-8,' + encodeURIComponent(text), '_blank');
-      if (opened) return;
-    }
     saveFile(
       new Blob([text], { type: 'text/calendar;charset=utf-8' }),
       'date-limite-' + (slug || 'papier') + '.ics'
@@ -901,6 +897,8 @@
     const state = notificationState();
     if (state === 'default') {
       showToast('Être prévenu 7 jours avant et la veille ?', enableNotifications, 'Activer');
+    } else if (!CALENDAR_AVAILABLE) {
+      if (state === 'granted') showToast('Rappels prévus 7 jours avant et la veille.');
     } else if (state === 'granted') {
       showToast('Rappels prévus 7 jours avant et la veille.', () => downloadCalendar(paper), 'Calendrier');
     } else {
@@ -1218,6 +1216,7 @@
   // « Ajouter au calendrier » n'a de sens que pour un papier enregistré, à
   // traiter, et qui a une date limite.
   function renderCalendarRow() {
+    els.calendarButton.hidden = !CALENDAR_AVAILABLE;
     els.calendarRow.hidden = !(
       sheet &&
       sheet.mode === 'edit' &&
@@ -1544,6 +1543,7 @@
   }
 
   buildCategoryChips();
+  if (!CALENDAR_AVAILABLE) document.getElementById('calendar-hint').hidden = true;
 
   // Recherche et filtre.
   els.search.addEventListener('input', () => {
