@@ -1189,16 +1189,6 @@ p {
 
 /* ---------- Rappels ---------- */
 
-/* Sous la date limite : rappel de la règle et bouton du calendrier. */
-.calendar-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 12px;
-  min-height: 28px;
-}
-
 .status-card {
   display: grid;
   gap: 12px;

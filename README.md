@@ -52,8 +52,6 @@ comme si nous étions ce jour-là, et l'indique par un bandeau.
    apparaît. Recharger la page ne la redonne pas.
 5. Faire de même avec la veille, `http://localhost:8000/?date=2026-11-30` :
    la notification « Demain » apparaît.
-6. Dans la fiche du papier, « Ajouter au calendrier » télécharge un fichier
-   `.ics`. L'ouvrir propose un évènement avec deux alertes.
 
 ## Tester la sauvegarde
 
@@ -89,7 +87,7 @@ testera après la mise en ligne.
 | `style.css` | Mise en forme |
 | `app.js` | Interface : liste, ajout, consultation, rappels, sauvegarde |
 | `store.js` | Accès aux données (IndexedDB) |
-| `reminders.js` | Calcul des rappels et fichier de calendrier |
+| `reminders.js` | Calcul des rappels |
 | `backup.js` | Sauvegarde en un fichier `.zip` et restauration |
 | `sw.js` | Service worker : notifications et fonctionnement hors ligne |
 | `manifest.webmanifest` | Description de l'application pour l'installation |

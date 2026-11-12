@@ -2,8 +2,8 @@
  * Rappels de « Mes papiers » : 7 jours avant la date limite, puis la veille.
  *
  * Ce fichier est chargé par la page et par le service worker (sw.js). Il ne
- * touche donc jamais à l'affichage : il dit quels rappels sont dus, fabrique
- * leur texte et le fichier de calendrier (.ics).
+ * touche donc jamais à l'affichage : il dit quels rappels sont dus et fabrique
+ * leur texte.
  *
  * Chaque fiche retient les rappels déjà donnés dans `reminded` :
  *   { week: 'AAAA-MM-JJ', eve: 'AAAA-MM-JJ' }
@@ -191,98 +191,6 @@ const Reminders = (function () {
     return given;
   }
 
-  /* ---------- Fichier de calendrier (.ics) ---------- */
-
-  function icsText(value) {
-    return String(value)
-      .replace(/\\/g, '\\\\')
-      .replace(/;/g, '\\;')
-      .replace(/,/g, '\\,')
-      .replace(/\r?\n/g, '\\n');
-  }
-
-  // Une ligne ne doit pas dépasser 75 octets : au-delà, elle continue sur la
-  // ligne suivante, qui commence par une espace.
-  function icsFold(line) {
-    const encoder = new TextEncoder();
-    const parts = [];
-    let current = '';
-    let size = 0;
-    for (const character of line) {
-      const bytes = encoder.encode(character).length;
-      if (size + bytes > (parts.length === 0 ? 75 : 74)) {
-        parts.push(current);
-        current = '';
-        size = 0;
-      }
-      current += character;
-      size += bytes;
-    }
-    parts.push(current);
-    return parts.join('\r\n ');
-  }
-
-  const pad = (number) => String(number).padStart(2, '0');
-  const icsDay = (date) => date.getFullYear() + pad(date.getMonth() + 1) + pad(date.getDate());
-  const icsInstant = (date) =>
-    date.getUTCFullYear() +
-    pad(date.getUTCMonth() + 1) +
-    pad(date.getUTCDate()) +
-    'T' +
-    pad(date.getUTCHours()) +
-    pad(date.getUTCMinutes()) +
-    pad(date.getUTCSeconds()) +
-    'Z';
-
-  // Un évènement sur la journée de la date limite, avec deux alertes : 7 jours
-  // avant et la veille, à 9 h. C'est l'agenda du téléphone qui prévient, même
-  // si l'application n'est jamais rouverte. Renvoie null sans date limite.
-  function toICS(paper, categoryLabel) {
-    const due = parseDay(paper.dueDate);
-    if (!due) return null;
-    const name = paper.organisation;
-    const stamp = new Date();
-    // Numéro de version : si la date change et qu'on rajoute l'évènement,
-    // l'agenda remplace l'ancien au lieu d'en créer un second.
-    const sequence = Math.max(
-      0,
-      Math.floor((Date.parse(paper.updatedAt || paper.createdAt) - Date.UTC(2024, 0, 1)) / 1000) || 0
-    );
-    const lines = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//Mes papiers//FR',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'BEGIN:VEVENT',
-      'UID:' + paper.id + '@mes-papiers',
-      'DTSTAMP:' + icsInstant(stamp),
-      'SEQUENCE:' + sequence,
-      'DTSTART;VALUE=DATE:' + icsDay(due),
-      'DTEND;VALUE=DATE:' + icsDay(addDays(due, 1)),
-      'SUMMARY:' + icsText('Date limite : ' + name),
-      'DESCRIPTION:' +
-        icsText(
-          (categoryLabel ? 'Catégorie : ' + categoryLabel + '\n' : '') +
-            'Papier rangé dans « Mes papiers ».'
-        ),
-      'TRANSP:TRANSPARENT',
-      'BEGIN:VALARM',
-      'ACTION:DISPLAY',
-      'DESCRIPTION:' + icsText('Dans 7 jours : ' + name),
-      'TRIGGER:-P6DT15H', // 7 jours avant, à 9 h
-      'END:VALARM',
-      'BEGIN:VALARM',
-      'ACTION:DISPLAY',
-      'DESCRIPTION:' + icsText('Demain : ' + name),
-      'TRIGGER:-PT15H', // la veille, à 9 h
-      'END:VALARM',
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ];
-    return lines.map(icsFold).join('\r\n') + '\r\n';
-  }
-
   return {
     WEEK_DAYS,
     ICON,
@@ -295,6 +203,5 @@ const Reminders = (function () {
     armed,
     upcoming,
     check,
-    toICS,
   };
 })();
