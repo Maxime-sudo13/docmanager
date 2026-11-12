@@ -68,6 +68,40 @@
   --font-title: "Fraunces", ui-serif, Georgia, serif;
 }
 
+/* Thème sombre, au choix de l'utilisateur (« ⋮ », Apparence). Le thème
+   clair reste celui par défaut, même si le téléphone est en mode sombre. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #161a22;
+  --surface: #1f2430;
+  --ink: #efe9dd;
+  --ink-soft: #a7a397;
+  --line: #2f3543;
+  --accent: #a9bde6;
+  --on-accent: #131b2e;
+  --accent-soft: #283149;
+  --field-border: #5a6070;
+  --danger: #ff9d8e;
+  --on-danger: #3b0d08;
+  --warn: #f2bb5f;
+  --shadow: 0 0 0;
+
+  --c-impots: #6f9cf2;
+  --c-sante: #4cc58a;
+  --c-logement: #f29a52;
+  --c-banque: #ec6fa8;
+  --c-energie: #f2c94c;
+  --c-autre: #a4a19a;
+
+  --tile-late: #43221f;
+  --tile-late-ink: #ffb5a8;
+  --tile-week: #3d301a;
+  --tile-week-ink: #f5cd85;
+  --tile-todo: #26304a;
+  --tile-todo-ink: #c3d2f2;
+}
+
 *,
 *::before,
 *::after {
@@ -1234,6 +1268,127 @@ p {
 
 .upcoming .upcoming-more {
   display: block;
+}
+
+/* Pages suivantes, sous l'aperçu du papier. */
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.pages-list {
+  display: contents;
+}
+
+.page {
+  position: relative;
+}
+
+.page-open {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 82px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.page-open img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page-number {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  padding: 0 5px;
+  background: rgb(14 16 20 / 0.7);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.page-remove {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.page-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px dashed var(--field-border);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.page-add:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Rappel de sauvegarde, en haut de la liste. */
+.backup-reminder {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--warn);
+  border-left-width: 5px;
+  border-radius: var(--radius);
+}
+
+.backup-reminder-title {
+  font-family: var(--font-title);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.backup-reminder .actions {
+  margin-top: 6px;
+}
+
+.backup-reminder .btn {
+  min-height: 46px;
+}
+
+/* Choix clair / sombre, dans « Sauvegarde et installation ». */
+.theme-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 /* ---------- Suppression ---------- */

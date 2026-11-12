@@ -19,6 +19,9 @@
   const WIDE = window.matchMedia('(min-width: 1000px)');
   const REMINDER_CHECK_DELAY = 60 * 60 * 1000; // les rappels sont revérifiés toutes les heures
   const BACKUP_KEY = 'mes-papiers.derniere-sauvegarde'; // réglage gardé par le navigateur
+  const THEME_KEY = 'mes-papiers.theme';                 // 'light' (par défaut) ou 'dark'
+  const SNOOZE_KEY = 'mes-papiers.rappel-sauvegarde';    // « Plus tard » : date de fin
+  const SNOOZE_DAYS = 7;
   const BACKUP_MAX_AGE = 30 * 24 * 60 * 60 * 1000;      // au-delà, une sauvegarde est conseillée
   const BACKUP_MIN_PAPERS = 3;                          // en dessous, pas la peine d'insister
 
@@ -66,6 +69,10 @@
     sideBellDot: $('side-bell-dot'),
     sideMenu: $('side-menu'),
     sideMenuDot: $('side-menu-dot'),
+    backupReminder: $('backup-reminder'),
+    backupReminderText: $('backup-reminder-text'),
+    backupReminderLater: $('backup-reminder-later'),
+    backupReminderSave: $('backup-reminder-save'),
     bell: $('bell'),
     bellDot: $('bell-dot'),
     menuButton: $('menu-button'),
@@ -120,6 +127,8 @@
     deleteCancel: $('delete-cancel'),
     deleteYes: $('delete-yes'),
     sheetError: $('sheet-error'),
+    pagesList: $('pages-list'),
+    pageInput: $('page-input'),
     viewer: $('viewer'),
     viewerTitle: $('viewer-title'),
     viewerImage: $('viewer-image'),
@@ -404,6 +413,8 @@
       if (due.level) label.dataset.level = due.level;
       meta.append(label);
     }
+    const pageCount = 1 + (paper.extraPages || []).length;
+    if (pageCount > 1) meta.append(el('span', 'paper-pages', pageCount + ' pages'));
 
     const text = el('span', 'paper-text');
     text.append(el('span', 'paper-title', paper.organisation), meta);
@@ -955,8 +966,39 @@
     return !backup || Date.now() - Date.parse(backup.at) > BACKUP_MAX_AGE;
   }
 
+  // Encadré en haut de la liste quand une sauvegarde est conseillée, sauf si
+  // l'utilisateur a choisi « Plus tard » il y a moins de 7 jours.
+  function renderBackupReminder(advised) {
+    let snoozed = false;
+    try {
+      snoozed = Date.now() < Number(localStorage.getItem(SNOOZE_KEY) || 0);
+    } catch (error) {
+      snoozed = false;
+    }
+    els.backupReminder.hidden = !advised || snoozed;
+    if (els.backupReminder.hidden) return;
+    const backup = lastBackup();
+    const added = addedSince(backup);
+    els.backupReminderText.textContent = backup
+      ? 'Dernière sauvegarde il y a ' +
+        Math.floor((Date.now() - Date.parse(backup.at)) / 86400000) +
+        ' jours, ' + plural(added, 'papier ajouté', 'papiers ajoutés') + ' depuis. ' +
+        "Si ce téléphone est perdu, ils le seront aussi."
+      : "Vos papiers n'existent que sur ce téléphone. Une sauvegarde les protège s'il est perdu ou changé.";
+  }
+
+  function snoozeBackupReminder() {
+    try {
+      localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_DAYS * 86400000));
+    } catch (error) {
+      // Rien de grave : l'encadré reviendra au prochain affichage.
+    }
+    els.backupReminder.hidden = true;
+  }
+
   function renderMenuDot() {
     const advised = backupAdvised();
+    renderBackupReminder(advised);
     els.menuDot.hidden = !advised;
     els.sideMenuDot.hidden = !advised;
     els.menuButton.setAttribute(
@@ -1133,6 +1175,34 @@
     renderInstall();
   }
 
+  /* ---------- Apparence ---------- */
+
+  function savedTheme() {
+    try {
+      return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+    } catch (error) {
+      return 'light';
+    }
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'dark') document.documentElement.dataset.theme = 'dark';
+    else delete document.documentElement.dataset.theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = theme === 'dark' ? '#161a22' : '#f3eee4';
+    const radio = document.querySelector('#theme-choice input[value="' + theme + '"]');
+    if (radio) radio.checked = true;
+  }
+
+  function chooseTheme(theme) {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (error) {
+      // Réglage non gardé : il s'applique quand même jusqu'à la fermeture.
+    }
+    applyTheme(theme);
+  }
+
   function openSettings() {
     els.backupFeedback.textContent = pendingBackup
       ? 'Sauvegarde prête. Toucher « Enregistrer le fichier ».'
@@ -1247,6 +1317,7 @@
   }
 
   function cleanUpSheet() {
+    releasePages();
     releaseFileUrl();
     sheet = null;
     els.dialog.classList.remove('as-panel');
@@ -1255,7 +1326,8 @@
 
   function openAdd() {
     closeSheet();
-    sheet = { mode: 'add', file: null, fileUrl: null };
+    sheet = { mode: 'add', file: null, fileUrl: null, pages: [], removedPages: [] };
+    renderPages();
     resetForm();
     els.dialogTitle.textContent = 'Nouveau papier';
     els.saveButton.textContent = 'Ajouter';
@@ -1285,7 +1357,7 @@
 
   async function openEdit(paper) {
     closeSheet();
-    const current = { mode: 'edit', paper, fileUrl: null };
+    const current = { mode: 'edit', paper, fileUrl: null, pages: [], removedPages: [] };
     sheet = current;
     resetForm();
     els.dialogTitle.textContent = 'Détails du papier';
@@ -1324,6 +1396,10 @@
       if (!file) throw new Error('Fichier introuvable');
       current.fileUrl = URL.createObjectURL(file);
       showPreview(paper.type, current.fileUrl, true);
+      const pages = await PaperStore.getPages(paper);
+      if (sheet !== current) return;
+      current.pages = pages.map((page) => ({ key: page.key, blob: page.blob, url: URL.createObjectURL(page.blob) }));
+      renderPages();
     } catch (error) {
       console.error(error);
       if (sheet === current) showSheetError("Le fichier de ce papier n'a pas pu être relu.");
@@ -1416,6 +1492,7 @@
         id = sheet.paper.id;
         await PaperStore.update(id, Object.assign(fields, { updatedAt: now }));
       }
+      await savePageChanges(id);
       els.dialog.close();
       await refresh();
       reveal(id);
@@ -1471,6 +1548,7 @@
     const paper = sheet.paper;
     setBusy(true);
     try {
+      await savePageChanges(paper.id);
       await saveDone(paper, !paper.done, fields, true);
       els.dialog.close();
     } catch (error) {
@@ -1507,10 +1585,73 @@
 
   /* ---------- Visionneuse ---------- */
 
-  function openViewer() {
-    if (!sheet || !sheet.fileUrl) return;
-    const title = els.organisation.value.trim() || els.dialogTitle.textContent;
-    els.viewerImage.src = sheet.fileUrl;
+  /* ---------- Pages suivantes ---------- */
+
+  // Les pages en plus de la première : celles déjà enregistrées (`key`) et
+  // celles ajoutées dans la feuille (`isNew`), enregistrées avec « Ajouter » ou
+  // « Enregistrer ». Une page retirée l'est aussi à l'enregistrement.
+  function renderPages() {
+    const pages = sheet ? sheet.pages : [];
+    els.pagesList.replaceChildren(
+      ...pages.map((page, index) => {
+        const number = index + 2;
+        const tile = el('div', 'page');
+        let open;
+        if (isImage(page.blob.type)) {
+          open = el('button', 'page-open');
+          open.type = 'button';
+          const image = el('img');
+          image.src = page.url;
+          image.alt = '';
+          open.append(image);
+          open.addEventListener('click', () => openViewer(page.url, number));
+        } else {
+          open = el('a', 'page-open', page.blob.type === 'application/pdf' ? 'PDF' : 'Fichier');
+          open.href = page.url;
+          if (page.blob.type === 'application/pdf') open.target = '_blank';
+          else open.download = 'page-' + number;
+        }
+        open.setAttribute('aria-label', 'Voir la page ' + number);
+        const label = el('span', 'page-number', String(number));
+        label.setAttribute('aria-hidden', 'true');
+        const remove = el('button', 'page-remove', '×');
+        remove.type = 'button';
+        remove.setAttribute('aria-label', 'Retirer la page ' + number);
+        remove.addEventListener('click', () => {
+          if (page.key) sheet.removedPages.push(page.key);
+          URL.revokeObjectURL(page.url);
+          sheet.pages = sheet.pages.filter((candidate) => candidate !== page);
+          renderPages();
+        });
+        tile.append(open, label, remove);
+        return tile;
+      })
+    );
+  }
+
+  function releasePages() {
+    if (!sheet) return;
+    for (const page of sheet.pages || []) URL.revokeObjectURL(page.url);
+    sheet.pages = [];
+  }
+
+  // Enregistre les pages ajoutées ou retirées dans la feuille.
+  async function savePageChanges(id) {
+    if (!sheet) return;
+    for (const key of sheet.removedPages) await PaperStore.removePage(id, key);
+    for (const page of sheet.pages) {
+      if (!page.isNew) continue;
+      const prepared = await prepareFile(page.blob);
+      await PaperStore.addPage(id, prepared.blob);
+    }
+  }
+
+  function openViewer(url, pageNumber) {
+    const src = typeof url === 'string' ? url : sheet && sheet.fileUrl;
+    if (!src) return;
+    const name = els.organisation.value.trim() || els.dialogTitle.textContent;
+    const title = typeof pageNumber === 'number' ? name + ' · page ' + pageNumber : name;
+    els.viewerImage.src = src;
     els.viewerImage.alt = title;
     els.viewerTitle.textContent = title;
     els.viewer.showModal();
@@ -1543,6 +1684,10 @@
   }
 
   buildCategoryChips();
+  applyTheme(savedTheme());
+  document.getElementById('theme-choice').addEventListener('change', (event) => {
+    if (event.target.name === 'theme') chooseTheme(event.target.value);
+  });
   if (!CALENDAR_AVAILABLE) document.getElementById('calendar-hint').hidden = true;
 
   // Recherche et filtre.
@@ -1608,7 +1753,18 @@
   els.deleteCancel.addEventListener('click', () => showDeleteConfirm(false));
   els.deleteYes.addEventListener('click', onDelete);
 
-  els.previewOpen.addEventListener('click', openViewer);
+  els.previewOpen.addEventListener('click', () => openViewer());
+  els.pageInput.addEventListener('change', () => {
+    const file = els.pageInput.files && els.pageInput.files[0];
+    els.pageInput.value = '';
+    if (!file || !sheet) return;
+    if (file.size === 0) {
+      showSheetError('Ce fichier est vide. En choisir un autre.');
+      return;
+    }
+    sheet.pages.push({ blob: file, url: URL.createObjectURL(file), isNew: true });
+    renderPages();
+  });
   // Image que le navigateur ne sait pas afficher : on propose de l'ouvrir.
   els.previewImage.addEventListener('error', () => showPreview('', null, false));
 
@@ -1662,6 +1818,13 @@
   });
   // Sauvegarde et installation.
   els.menuButton.addEventListener('click', openSettings);
+  els.backupReminderLater.addEventListener('click', snoozeBackupReminder);
+  // « Sauvegarder » ouvre la feuille de sauvegarde et lance l'export : le
+  // compte rendu (ou « Enregistrer le fichier » sur iPhone) s'y affiche.
+  els.backupReminderSave.addEventListener('click', () => {
+    openSettings();
+    exportBackup();
+  });
   els.sideMenu.addEventListener('click', openSettings);
   els.backupExport.addEventListener('click', exportBackup);
   els.backupImport.addEventListener('change', () => {

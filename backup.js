@@ -244,7 +244,23 @@ const Backup = (function () {
       const file = await PaperStore.getFile(paper.id);
       if (!file) continue; // fiche sans fichier : rien à sauvegarder
       const entry = Object.assign({}, paper, { file: pathFor(paper), thumbnail: null });
+      delete entry.extraPages;
       zip.add(entry.file, new Uint8Array(await file.arrayBuffer()));
+      // Pages suivantes : à côté de la première, « …-page-2.jpg », etc.
+      const pages = await PaperStore.getPages(paper);
+      if (pages.length > 0) {
+        entry.pages = [];
+        let number = 2;
+        for (const page of pages) {
+          const type = page.blob.type || '';
+          const path =
+            entry.file.replace(/\.[a-z0-9]+$/, '') +
+            '-page-' + number + '.' + extension({ type, fileName: '' });
+          zip.add(path, new Uint8Array(await page.blob.arrayBuffer()));
+          entry.pages.push({ file: path, type });
+          number++;
+        }
+      }
       if (paper.thumbnail) {
         entry.thumbnail = 'vignettes/' + paper.id + '.jpg';
         zip.add(entry.thumbnail, new Uint8Array(await paper.thumbnail.arrayBuffer()));
@@ -354,6 +370,21 @@ const Backup = (function () {
           }
         }
         await PaperStore.add(paper, new Blob([content], { type: paper.type }));
+        // Pages suivantes : une page abîmée ou absente est laissée de côté,
+        // le papier est restauré avec les autres.
+        if (Array.isArray(raw.pages)) {
+          for (const rawPage of raw.pages.slice(0, 100)) {
+            if (!rawPage || typeof rawPage.file !== 'string') continue;
+            const readPage = files.get(rawPage.file);
+            if (!readPage) continue;
+            const type = typeof rawPage.type === 'string' && /^[\w.+-]+\/[\w.+-]+$/.test(rawPage.type) ? rawPage.type : '';
+            try {
+              await PaperStore.addPage(paper.id, new Blob([await readPage()], { type }));
+            } catch (error) {
+              if (error && error.name === 'QuotaExceededError') throw error;
+            }
+          }
+        }
         known.add(paper.id);
         result.added++;
       } catch (error) {
