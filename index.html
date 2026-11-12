@@ -11,12 +11,12 @@
     erreur se glissait un jour dans le code. « file: » sert à l'ouverture par
     double-clic sur ce fichier.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file: blob:; manifest-src 'self' file:; worker-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file: blob:; font-src 'self' file:; manifest-src 'self' file:; worker-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Mes papiers</title>
   <meta name="description" content="Ranger ses papiers administratifs et être prévenu avant les échéances. Tout reste sur l'appareil.">
-  <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#14171c" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3eee4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#161a22" media="(prefers-color-scheme: dark)">
   <meta name="format-detection" content="telephone=no">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
 
@@ -32,9 +32,29 @@
 </head>
 <body>
 
+  <!-- Ordinateur : barre latérale avec les catégories et les actions. -->
+  <aside class="sidebar" aria-label="Navigation">
+    <p class="sidebar-brand">Mes papiers</p>
+    <nav id="side-nav" class="side-nav" aria-label="Catégories"></nav>
+    <button id="side-add" class="btn btn-primary side-add" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Ajouter un papier</button>
+    <div class="side-bottom">
+      <button id="side-bell" class="side-link" type="button"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Rappels<span id="side-bell-dot" class="side-dot" hidden></span></button>
+      <button id="side-menu" class="side-link" type="button"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Sauvegarde<span id="side-menu-dot" class="side-dot" hidden></span></button>
+    </div>
+  </aside>
+
+  <!-- Ordinateur : emplacement de la fiche d'un papier, tant qu'aucun n'est choisi. -->
+  <div class="panel-placeholder" aria-hidden="true">
+    <svg viewBox="0 0 120 120" width="96" height="96"><rect class="art-back" x="36" y="16" width="58" height="80" rx="6" transform="rotate(9 65 56)"/><path class="art-front" d="M30 22h42l20 20v56a6 6 0 0 1-6 6H30a6 6 0 0 1-6-6V28a6 6 0 0 1 6-6z"/><path class="art-fold" d="M72 22v14a6 6 0 0 0 6 6h14"/><path class="art-lines" d="M38 60h40M38 72h40M38 84h24"/></svg>
+    <p>Choisir un papier pour le voir ici.</p>
+  </div>
+
   <header class="app-header">
     <div class="app-header-inner">
-      <h1>Mes papiers</h1>
+      <div class="heading">
+        <h1><span class="brand">Mes papiers</span><span id="view-title" class="view-title">Tous les papiers</span></h1>
+        <p id="today" class="today"></p>
+      </div>
       <p id="count" class="count"></p>
       <button id="bell" class="icon-button bell" type="button" aria-label="Rappels" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -67,6 +87,13 @@
       <h2>Aucun papier pour l'instant</h2>
       <p>Pour commencer, prendre un courrier en photo ou importer un fichier.</p>
     </section>
+
+    <!-- Résumé : ce qui presse. -->
+    <div id="summary" class="summary" hidden>
+      <div class="tile tile-late"><span id="sum-late" class="tile-n">0</span><span class="tile-l">en retard</span></div>
+      <div class="tile tile-week"><span id="sum-week" class="tile-n">0</span><span class="tile-l">cette semaine</span></div>
+      <div class="tile tile-todo"><span id="sum-todo" class="tile-n">0</span><span class="tile-l">à traiter</span></div>
+    </div>
 
     <!-- Recherche et filtre par catégorie. -->
     <div id="toolbar" class="toolbar" hidden>

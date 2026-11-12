@@ -1,43 +1,100 @@
 /* Mes papiers — styles. Pensé pour le téléphone d'abord. */
 
+/* Polices embarquées (licence SIL OFL, voir fonts/) : rien n'est chargé
+   depuis Internet. Fraunces pour les titres, Figtree pour le texte. */
+@font-face {
+  font-family: "Fraunces";
+  src: url("fonts/fraunces.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("fonts/fraunces-italic.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Figtree";
+  src: url("fonts/figtree.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Thème « Papeterie » : papier crème, encre bleu nuit. */
 :root {
   color-scheme: light dark;
 
-  --paper: #f4f1ea;        /* fond de page, ton papier */
-  --surface: #fffdf8;      /* cartes et feuilles */
-  --ink: #1d232e;          /* texte */
-  --ink-soft: #5c6470;     /* texte secondaire */
-  --line: #e3ddd0;         /* filets */
-  --accent: #2a4b9b;       /* bleu encre */
-  --on-accent: #ffffff;
-  --accent-soft: #e6ebf7;
-  --field-border: #8f8878; /* contour des champs de saisie */
-  --danger: #a3261c;
+  --paper: #f3eee4;        /* fond de page, ton papier */
+  --surface: #fffcf6;      /* cartes et feuilles */
+  --ink: #1f2433;          /* texte, bleu nuit presque noir */
+  --ink-soft: #6a675f;     /* texte secondaire */
+  --line: #e4dccb;         /* filets */
+  --accent: #23395d;       /* bleu nuit */
+  --on-accent: #fffaf0;
+  --accent-soft: #e5e9f1;
+  --field-border: #b8ad97; /* contour des champs de saisie */
+  --danger: #b23a2b;
   --on-danger: #ffffff;
-  --warn: #8f5400;         /* échéance dans la semaine */
-  --shadow: 29 35 46;
+  --warn: #9a5a0c;         /* échéance dans la semaine */
+  --shadow: 60 45 20;
 
-  --radius: 16px;
+  /* Couleurs des catégories. */
+  --c-impots: #3a5f9e;
+  --c-sante: #2f7d5b;
+  --c-logement: #a35d32;
+  --c-banque: #6b4fa3;
+  --c-energie: #b07c0a;
+  --c-autre: #7c7a74;
+
+  /* Cases du résumé. */
+  --tile-late: #f8ddd6;
+  --tile-late-ink: #8f2a1d;
+  --tile-week: #f6e7c8;
+  --tile-week-ink: #7a4b06;
+  --tile-todo: #dfe6f1;
+  --tile-todo-ink: #23395d;
+
+  --radius: 14px;
   --gutter: 16px;
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-title: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+  --font-ui: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-title: "Fraunces", ui-serif, Georgia, serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #14171c;
-    --surface: #1e2229;
-    --ink: #eceae4;
-    --ink-soft: #a4aab5;
-    --line: #2f353f;
-    --accent: #9db5f5;
-    --on-accent: #0f1d3d;
-    --accent-soft: #252f47;
-    --field-border: #737b88;
-    --danger: #ff9d92;
+    --paper: #161a22;
+    --surface: #1f2430;
+    --ink: #efe9dd;
+    --ink-soft: #a7a397;
+    --line: #2f3543;
+    --accent: #a9bde6;
+    --on-accent: #131b2e;
+    --accent-soft: #283149;
+    --field-border: #5a6070;
+    --danger: #ff9d8e;
     --on-danger: #3b0d08;
-    --warn: #f0b458;
+    --warn: #f2bb5f;
     --shadow: 0 0 0;
+
+    --c-impots: #7d9ee0;
+    --c-sante: #5cbf8f;
+    --c-logement: #e09466;
+    --c-banque: #a98ae0;
+    --c-energie: #e3b443;
+    --c-autre: #a4a19a;
+
+    --tile-late: #43221f;
+    --tile-late-ink: #ffb5a8;
+    --tile-week: #3d301a;
+    --tile-week-ink: #f5cd85;
+    --tile-todo: #26304a;
+    --tile-todo-ink: #c3d2f2;
   }
 }
 
@@ -56,8 +113,8 @@ html {
   text-size-adjust: 100%;
 }
 
-/* La page ne défile pas derrière une feuille ouverte. */
-html:has(dialog[open]) {
+/* La page ne défile pas derrière une feuille ouverte par-dessus. */
+html:has(dialog:modal) {
   overflow: hidden;
 }
 
@@ -101,62 +158,64 @@ p {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: calc(14px + env(safe-area-inset-top)) var(--gutter) 12px;
+  padding: calc(16px + env(safe-area-inset-top)) var(--gutter) 10px;
   background: var(--paper);
-  border-bottom: 1px solid var(--line);
 }
 
 .app-header-inner {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 8px;
   max-width: 40rem;
   margin: 0 auto;
 }
 
-.app-header h1 {
-  font-family: var(--font-title);
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1.15;
-}
-
-.app-header h1 {
+.heading {
+  min-width: 0;
   margin-right: auto;
 }
 
-.count {
-  min-width: 0;
-  overflow: hidden;
+.app-header h1 {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  font-weight: 600;
+  font-variation-settings: "SOFT" 100, "opsz" 72;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* Sur téléphone, le titre est le nom de l'application ; sur ordinateur,
+   la catégorie affichée (le nom est dans la barre latérale). */
+.view-title {
+  display: none;
+}
+
+.today {
+  margin-top: 4px;
   color: var(--ink-soft);
   font-size: 0.9375rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+/* Le résumé dit déjà combien de papiers sont à traiter. */
+.count {
+  display: none;
 }
 
 /* Boutons de l'en-tête (rappels, sauvegarde). Un point rouge signale qu'il
    y a quelque chose à faire. */
-.bell {
+.app-header .bell {
   position: relative;
-  margin: -8px -6px;
+  margin: -2px 0 0;
   color: var(--ink);
 }
 
-.bell:last-child {
+.app-header .bell:last-child {
   margin-right: -10px;
 }
 
-/* Sur les petits écrans, le titre rétrécit, puis le compteur s'efface. */
 @media (max-width: 380px) {
   .app-header h1 {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 339px) {
-  .count {
-    display: none;
+    font-size: 1.75rem;
   }
 }
 
@@ -171,13 +230,60 @@ p {
   border-radius: 50%;
 }
 
+/* ---------- Résumé en trois cases ---------- */
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 12px 11px;
+  border-radius: 14px;
+}
+
+.tile-n {
+  font-family: var(--font-title);
+  font-size: 1.875rem;
+  font-weight: 600;
+  font-variant-numeric: lining-nums;
+  line-height: 1;
+}
+
+.tile-l {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.tile-late { background: var(--tile-late); color: var(--tile-late-ink); }
+.tile-week { background: var(--tile-week); color: var(--tile-week-ink); }
+.tile-todo { background: var(--tile-todo); color: var(--tile-todo-ink); }
+
+/* Rien en retard ou rien cette semaine : la case s'éteint. */
+.summary:not(.has-late) .tile-late,
+.summary:not(.has-week) .tile-week {
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
 /* ---------- Contenu ---------- */
 
 .app-main {
   max-width: calc(40rem + 2 * var(--gutter));
   margin: 0 auto;
   /* On laisse la place du bouton fixe en bas de l'écran. */
-  padding: 16px var(--gutter) calc(112px + env(safe-area-inset-bottom));
+  padding: 8px var(--gutter) calc(112px + env(safe-area-inset-bottom));
 }
 
 .empty {
@@ -267,8 +373,9 @@ p {
   min-height: 48px;
   padding: 0 46px;
   background: var(--surface);
-  border: 1px solid var(--field-border);
+  border: 1px solid var(--line);
   border-radius: 999px;
+  box-shadow: 0 1px 2px rgb(var(--shadow) / 0.05);
   color: var(--ink);
   font: inherit; /* 16 px au moins : sinon l'iPhone zoome à la saisie */
   -webkit-appearance: none;
@@ -363,18 +470,23 @@ p {
   color: var(--ink);
 }
 
+/* Intertitres « À traiter », « Traités » : en italique, comme sur un carnet. */
 .group-title {
-  margin: 20px 4px 8px;
-  color: var(--ink-soft);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  margin: 22px 4px 10px;
+  font-family: var(--font-title);
+  font-size: 1.1875rem;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.005em;
 }
 
 .group-count {
-  margin-left: 4px;
-  font-weight: 400;
+  margin-left: 6px;
+  color: var(--ink-soft);
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  font-style: normal;
+  font-weight: 500;
 }
 
 .toolbar + .group,
@@ -392,25 +504,39 @@ p {
   list-style: none;
 }
 
+/* Chaque papier est une fiche avec, sur le bord gauche, une tranche de la
+   couleur de sa catégorie, comme l'onglet d'un classeur. */
 .paper {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgb(var(--shadow) / 0.04);
+}
+
+.paper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 5px;
+  background: var(--category);
 }
 
 /* Zone principale : toucher ouvre le papier. */
 .paper-open {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   min-width: 0;
-  padding: 10px 4px 10px 10px;
+  padding: 12px 4px 12px 17px;
   background: none;
   border: 0;
-  border-radius: var(--radius) 0 0 var(--radius);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -421,15 +547,66 @@ p {
   background: var(--accent-soft);
 }
 
+/* Petit calendrier : le mois en haut, le jour en grand. */
+.cal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.cal-m {
+  align-self: stretch;
+  padding: 2px 0 1px;
+  background: var(--category);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.cal-d {
+  padding: 1px 0 3px;
+  font-family: var(--font-title);
+  font-size: 1.4rem;
+  font-weight: 600;
+  font-variant-numeric: lining-nums;
+  line-height: 1.15;
+}
+
+.cal-y {
+  margin: -3px 0 3px;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.cal-none .cal-d {
+  color: var(--ink-soft);
+}
+
+.cal-late {
+  border-color: var(--danger);
+}
+
+.cal-late .cal-m {
+  background: var(--danger);
+}
+
 /* Rond à cocher : marque le papier comme traité. */
 .paper-done {
   display: grid;
   place-items: center;
-  width: 56px;
+  width: 60px;
   padding: 0;
   background: none;
   border: 0;
-  border-radius: 0 var(--radius) var(--radius) 0;
   cursor: pointer;
 }
 
@@ -441,6 +618,7 @@ p {
   border: 2px solid var(--field-border);
   border-radius: 50%;
   color: transparent;
+  transition: background-color 0.15s, border-color 0.15s;
 }
 
 .paper-done[aria-pressed="true"] .check {
@@ -454,14 +632,36 @@ p {
   background: var(--accent-soft);
 }
 
+@media (hover: hover) {
+  .paper-done:hover .check {
+    border-color: var(--accent);
+  }
+
+  .paper:hover {
+    border-color: color-mix(in srgb, var(--line) 50%, var(--field-border));
+  }
+}
+
 /* Un papier traité s'efface un peu. */
+.paper.is-done {
+  background: color-mix(in srgb, var(--surface) 55%, var(--paper));
+  box-shadow: none;
+}
+
 .paper.is-done .paper-title {
   color: var(--ink-soft);
   font-weight: 500;
 }
 
-.paper.is-done .thumb {
-  opacity: 0.6;
+.paper.is-done::before,
+.paper.is-done .cal {
+  opacity: 0.5;
+}
+
+/* Le papier ouvert dans le volet de droite, sur ordinateur. */
+.paper.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 6px 16px -10px rgb(var(--shadow) / 0.5);
 }
 
 /* Le papier qu'on vient d'ajouter ou de modifier est signalé un instant. */
@@ -476,36 +676,14 @@ p {
   }
 }
 
-.thumb {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 72px;
-  overflow: hidden;
-  background: var(--accent-soft);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--accent);
-}
-
-.thumb img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.thumb-label {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
 .paper-title {
   display: -webkit-box;
   overflow: hidden;
+  font-family: var(--font-title);
+  font-size: 1.125rem;
   font-weight: 600;
-  line-height: 1.3;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -517,6 +695,9 @@ p {
   flex-wrap: wrap;
   align-items: center;
   gap: 2px 12px;
+  margin-top: 3px;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
 }
 
 /* Pastille de couleur + nom de la catégorie. */
@@ -532,34 +713,38 @@ p {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--category, #8a909b);
+  background: var(--category, var(--c-autre));
 }
 
-[data-category="impots"] { --category: #3d6fd6; }
-[data-category="sante"] { --category: #2f9a6a; }
-[data-category="logement"] { --category: #a9713f; }
-[data-category="banque"] { --category: #7a5cc7; }
-[data-category="energie"] { --category: #b9820f; }
-[data-category="autre"] { --category: #8a909b; }
+[data-category="impots"] { --category: var(--c-impots); }
+[data-category="sante"] { --category: var(--c-sante); }
+[data-category="logement"] { --category: var(--c-logement); }
+[data-category="banque"] { --category: var(--c-banque); }
+[data-category="energie"] { --category: var(--c-energie); }
+[data-category="autre"] { --category: var(--c-autre); }
 
 .paper-due {
   white-space: nowrap;
 }
 
+/* Une date sans urgence est déjà sur le petit calendrier : on ne la répète
+   pas. Le texte reste pour les lecteurs d'écran. */
+.paper-due:not([data-level]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
 .paper-due[data-level="soon"] {
   color: var(--warn);
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .paper-due[data-level="late"] {
   color: var(--danger);
-  font-weight: 600;
-}
-
-.paper-meta {
-  margin-top: 2px;
-  color: var(--ink-soft);
-  font-size: 0.875rem;
+  font-weight: 650;
 }
 
 /* ---------- Boutons ---------- */
@@ -653,7 +838,8 @@ p {
   max-width: 26rem;
   min-height: 56px;
   font-size: 1.0625rem;
-  box-shadow: 0 8px 20px rgb(var(--shadow) / 0.22);
+  white-space: nowrap;
+  box-shadow: 0 10px 24px -8px rgb(var(--shadow) / 0.45);
   pointer-events: auto;
 }
 
@@ -732,7 +918,9 @@ p {
 
 .sheet h2 {
   font-family: var(--font-title);
-  font-size: 1.375rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   line-height: 1.2;
 }
 
@@ -1160,12 +1348,213 @@ p {
   object-fit: contain;
 }
 
-/* ---------- Écrans larges : la feuille devient une fenêtre centrée ---------- */
+/* ---------- Écrans moyens : la feuille devient une fenêtre centrée ---------- */
 
 @media (min-width: 640px) {
   .sheet {
     margin: auto;
     border-radius: 22px;
+  }
+}
+
+/* ---------- Ordinateur : trois volets ---------- */
+
+/* Hors des grands écrans, la barre latérale et l'emplacement du volet de
+   droite n'existent pas. */
+.sidebar,
+.panel-placeholder {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  :root {
+    --side: 248px;   /* barre latérale */
+    --panel: 400px;  /* fiche du papier */
+  }
+
+  body {
+    padding-right: var(--panel);
+    padding-left: var(--side);
+  }
+
+  /* À gauche : le nom, les catégories, les actions. */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: var(--side);
+    padding: 26px 16px 20px;
+    border-right: 1px solid var(--line);
+  }
+
+  .sidebar-brand {
+    padding: 0 10px 20px;
+    font-family: var(--font-title);
+    font-size: 1.625rem;
+    font-weight: 600;
+    font-variation-settings: "SOFT" 100, "opsz" 72;
+    letter-spacing: -0.02em;
+  }
+
+  .side-nav {
+    display: grid;
+    gap: 2px;
+  }
+
+  .side-item,
+  .side-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    padding: 0 12px;
+    background: none;
+    border: 0;
+    border-radius: 10px;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.9375rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .side-item[data-filter="all"] .dot {
+    background: var(--ink);
+  }
+
+  .side-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .side-count {
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .side-item:hover,
+  .side-link:hover {
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+  }
+
+  .side-item[aria-pressed="true"] {
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgb(var(--shadow) / 0.08);
+    font-weight: 650;
+  }
+
+  .side-add {
+    margin-top: 18px;
+    min-height: 48px;
+    border-radius: 12px;
+  }
+
+  .side-bottom {
+    display: grid;
+    gap: 2px;
+    margin-top: auto;
+  }
+
+  .side-link svg {
+    flex: none;
+    color: var(--ink-soft);
+  }
+
+  .side-dot {
+    width: 8px;
+    height: 8px;
+    margin-left: auto;
+    background: var(--danger);
+    border-radius: 50%;
+  }
+
+  /* Au milieu : la liste. */
+  .app-header {
+    position: static;
+    padding: 30px 32px 8px;
+  }
+
+  .app-header-inner,
+  .app-main {
+    max-width: 46rem;
+  }
+
+  .app-main {
+    padding: 8px 32px 48px;
+  }
+
+  .brand,
+  .app-header .bell,
+  .filters,
+  .add-bar {
+    display: none !important;
+  }
+
+  .view-title {
+    display: inline;
+  }
+
+  .toast {
+    right: calc(var(--panel) + 24px);
+    bottom: 24px;
+    left: calc(var(--side) + 24px);
+  }
+
+  /* À droite : la fiche du papier choisi, ou une invitation à en choisir un. */
+  .panel-placeholder {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: var(--panel);
+    padding: 32px;
+    border-left: 1px solid var(--line);
+    color: var(--ink-soft);
+    text-align: center;
+  }
+
+  .panel-placeholder .art-back { fill: var(--accent-soft); stroke: var(--line); stroke-width: 1.5; }
+  .panel-placeholder .art-front { fill: var(--surface); stroke: var(--field-border); stroke-width: 2.5; stroke-linejoin: round; }
+  .panel-placeholder .art-fold,
+  .panel-placeholder .art-lines { fill: none; stroke: var(--field-border); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  .sheet.as-panel {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 3;
+    width: var(--panel);
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border-left: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: -10px 0 30px -24px rgb(var(--shadow) / 0.6);
+    animation: none;
+  }
+
+  .sheet.as-panel .sheet-inner {
+    padding: 24px 28px 28px;
+  }
+
+  .sheet.as-panel .preview-banner {
+    height: 230px;
   }
 }
 

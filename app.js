@@ -1,7 +1,7 @@
 /*
  * Mes papiers — interface.
- * Étape 5 : sauvegarde de tous les papiers en un fichier (voir backup.js) et
- * installation sur l'écran d'accueil (voir sw.js et manifest.webmanifest).
+ * Étape 7 : nouveau design « Papeterie ». Sur ordinateur, trois volets : les
+ * catégories à gauche, la liste au milieu, la fiche du papier à droite.
  * Les données sont enregistrées sur l'appareil (voir store.js).
  */
 (function () {
@@ -10,6 +10,8 @@
   const THUMBNAIL_MAX_SIDE = 320; // pixels, plus grand côté de la vignette
   const PHOTO_MAX_SIDE = 2400;    // pixels, plus grand côté d'une photo enregistrée
   const TOAST_DELAY = 6000;       // millisecondes
+  // Au-delà de cette largeur, l'écran est découpé en trois volets (voir style.css).
+  const WIDE = window.matchMedia('(min-width: 1100px)');
   const REMINDER_CHECK_DELAY = 60 * 60 * 1000; // les rappels sont revérifiés toutes les heures
   const BACKUP_KEY = 'mes-papiers.derniere-sauvegarde'; // réglage gardé par le navigateur
   const BACKUP_MAX_AGE = 30 * 24 * 60 * 60 * 1000;      // au-delà, une sauvegarde est conseillée
@@ -33,6 +35,18 @@
   const els = {
     main: document.querySelector('.app-main'),
     count: $('count'),
+    today: $('today'),
+    viewTitle: $('view-title'),
+    summary: $('summary'),
+    sumLate: $('sum-late'),
+    sumWeek: $('sum-week'),
+    sumTodo: $('sum-todo'),
+    sideNav: $('side-nav'),
+    sideAdd: $('side-add'),
+    sideBell: $('side-bell'),
+    sideBellDot: $('side-bell-dot'),
+    sideMenu: $('side-menu'),
+    sideMenuDot: $('side-menu-dot'),
     bell: $('bell'),
     bellDot: $('bell-dot'),
     menuButton: $('menu-button'),
@@ -132,6 +146,8 @@
     dueThisYear: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }),
     dueOtherYear: new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
     weekday: new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }),
+    today: new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
+    month: new Intl.DateTimeFormat('fr-FR', { month: 'short' }),
   };
 
   function formatSize(bytes) {
@@ -322,27 +338,44 @@
 
   // Une ligne de la liste : une grande zone qui ouvre le papier, et à droite
   // le rond « traité ».
+  // Petit calendrier : le mois en haut, le jour en grand. Coloré selon la
+  // catégorie, ou en rouge si l'échéance est passée.
+  function calendarBlock(paper, due) {
+    const block = el('span', 'cal');
+    block.dataset.category = paper.category;
+    block.setAttribute('aria-hidden', 'true');
+    const date = parseDay(paper.dueDate);
+    if (!date) {
+      block.classList.add('cal-none');
+      block.append(el('span', 'cal-m', ' '), el('span', 'cal-d', '–'));
+      return block;
+    }
+    if (due && due.level === 'late') block.classList.add('cal-late');
+    const month = formats.month.format(date).replace('.', '');
+    block.append(el('span', 'cal-m', month), el('span', 'cal-d', String(date.getDate())));
+    if (date.getFullYear() !== Reminders.today().getFullYear()) {
+      block.append(el('span', 'cal-y', String(date.getFullYear())));
+    }
+    return block;
+  }
+
+  function isSelected(paper) {
+    return Boolean(sheet && sheet.mode === 'edit' && sheet.paper.id === paper.id);
+  }
+
   function renderPaper(paper) {
-    const item = el('li', 'paper' + (paper.done ? ' is-done' : ''));
+    const item = el('li', 'paper' + (paper.done ? ' is-done' : '') + (isSelected(paper) ? ' is-selected' : ''));
     item.dataset.id = paper.id;
+    item.dataset.category = paper.category;
 
     const open = el('button', 'paper-open');
     open.type = 'button';
 
-    const thumb = el('span', 'thumb');
-    const url = thumbnailUrl(paper);
-    if (url) {
-      const image = el('img');
-      image.src = url;
-      image.alt = '';
-      thumb.append(image);
-    } else {
-      thumb.append(el('span', 'thumb-label', kindLabel(paper.type).toUpperCase()));
-    }
+    const due = dueInfo(paper);
+    const date = calendarBlock(paper, due);
 
     const meta = el('span', 'paper-meta');
     meta.append(categoryTag(paper.category));
-    const due = dueInfo(paper);
     if (due) {
       const label = el('span', 'paper-due', due.text);
       if (due.level) label.dataset.level = due.level;
@@ -351,7 +384,7 @@
 
     const text = el('span', 'paper-text');
     text.append(el('span', 'paper-title', paper.organisation), meta);
-    open.append(thumb, text);
+    open.append(date, text);
 
     const done = el('button', 'paper-done');
     done.type = 'button';
@@ -401,6 +434,49 @@
     for (const button of els.filters.children) {
       button.setAttribute('aria-pressed', String(button.dataset.filter === view.category));
     }
+    renderSideNav(used);
+  }
+
+  // Ordinateur : les catégories en colonne, avec le nombre de papiers.
+  function renderSideNav(used) {
+    const entry = (id, label, count) => {
+      const button = el('button', 'side-item');
+      button.type = 'button';
+      button.dataset.filter = id;
+      if (id !== 'all') button.dataset.category = id;
+      button.setAttribute('aria-pressed', String(view.category === id));
+      button.append(el('span', 'dot'), el('span', 'side-label', label), el('span', 'side-count', String(count)));
+      return button;
+    };
+    els.sideNav.replaceChildren(
+      entry('all', 'Tous les papiers', papers.length),
+      ...used.map((category) =>
+        entry(category.id, category.label, papers.filter((paper) => paper.category === category.id).length)
+      )
+    );
+    const current = CATEGORIES.find((category) => category.id === view.category);
+    els.viewTitle.textContent = current ? current.label : 'Tous les papiers';
+  }
+
+  // En haut de l'écran : en retard, dans les 7 jours, et en tout à traiter.
+  function renderSummary(pending) {
+    let late = 0;
+    let week = 0;
+    for (const paper of papers) {
+      if (paper.done) continue;
+      const days = Reminders.daysUntil(paper.dueDate);
+      if (days === null) continue;
+      if (days < 0) late++;
+      else if (days <= Reminders.WEEK_DAYS) week++;
+    }
+    els.summary.hidden = papers.length === 0;
+    els.sumLate.textContent = late;
+    els.sumWeek.textContent = week;
+    els.sumTodo.textContent = pending;
+    els.summary.classList.toggle('has-late', late > 0);
+    els.summary.classList.toggle('has-week', week > 0);
+    const today = formats.today.format(Reminders.today());
+    els.today.textContent = today.charAt(0).toUpperCase() + today.slice(1);
   }
 
   function render() {
@@ -413,6 +489,7 @@
       total === 0 ? '' : pending === 0 ? 'Tout traité' : pending + ' à traiter';
     els.searchClear.hidden = els.search.value === '';
     renderFilters();
+    renderSummary(pending);
     renderBell();
     renderMenuDot();
 
@@ -464,6 +541,13 @@
     view.category = 'all';
     els.search.value = '';
     render();
+  }
+
+  function markSelection() {
+    for (const row of els.main.querySelectorAll('.paper')) {
+      const selected = Boolean(sheet && sheet.mode === 'edit' && sheet.paper.id === row.dataset.id);
+      row.classList.toggle('is-selected', selected);
+    }
   }
 
   function findRow(id) {
@@ -666,6 +750,7 @@
       notificationState() === 'default' &&
       papers.some((paper) => !paper.done && paper.dueDate);
     els.bellDot.hidden = !attention;
+    els.sideBellDot.hidden = !attention;
     els.bell.setAttribute(
       'aria-label',
       attention ? 'Rappels : notifications à activer' : 'Rappels'
@@ -807,8 +892,10 @@
 
   function openPaperById(id) {
     const paper = papers.find((candidate) => candidate.id === id);
-    // On ne remplace pas une feuille déjà ouverte : une saisie est peut-être en cours.
-    if (paper && !els.dialog.open) openEdit(paper);
+    // On ne remplace pas une feuille ouverte par-dessus la liste : une saisie
+    // est peut-être en cours. Le volet de droite, lui, change de papier.
+    const busySheet = els.dialog.open && !els.dialog.classList.contains('as-panel');
+    if (paper && !busySheet) openEdit(paper);
   }
 
   /* ---------- Sauvegarde ---------- */
@@ -846,6 +933,7 @@
   function renderMenuDot() {
     const advised = backupAdvised();
     els.menuDot.hidden = !advised;
+    els.sideMenuDot.hidden = !advised;
     els.menuButton.setAttribute(
       'aria-label',
       advised ? 'Sauvegarde et installation : sauvegarde conseillée' : 'Sauvegarde et installation'
@@ -1116,7 +1204,31 @@
     els.form.hidden = step !== 'form';
   }
 
+  // Sur ordinateur, la fiche d'un papier s'affiche dans le volet de droite,
+  // sans masquer la liste ; partout ailleurs, c'est une feuille par-dessus.
+  function showSheet(asPanel) {
+    els.dialog.classList.toggle('as-panel', asPanel);
+    if (asPanel) els.dialog.show();
+    else els.dialog.showModal();
+  }
+
+  // Le navigateur annonce la fermeture un instant après : si un autre papier
+  // s'ouvre aussitôt (volet de droite), cette annonce tardive ne doit pas
+  // effacer le nouveau. Le ménage est donc fait tout de suite.
+  function closeSheet() {
+    if (els.dialog.open) els.dialog.close();
+    cleanUpSheet();
+  }
+
+  function cleanUpSheet() {
+    releaseFileUrl();
+    sheet = null;
+    els.dialog.classList.remove('as-panel');
+    markSelection();
+  }
+
   function openAdd() {
+    closeSheet();
     sheet = { mode: 'add', file: null, fileUrl: null };
     resetForm();
     els.dialogTitle.textContent = 'Nouveau papier';
@@ -1127,7 +1239,7 @@
     els.deleteZone.hidden = true;
     renderCalendarRow();
     showStep('choose');
-    els.dialog.showModal();
+    showSheet(false);
   }
 
   function onFilePicked(file) {
@@ -1146,6 +1258,7 @@
   }
 
   async function openEdit(paper) {
+    closeSheet();
     const current = { mode: 'edit', paper, fileUrl: null };
     sheet = current;
     resetForm();
@@ -1176,7 +1289,8 @@
     // En attendant le fichier, on montre la vignette.
     showPreview(paper.type, thumbnailUrl(paper), false);
     showStep('form');
-    els.dialog.showModal();
+    showSheet(WIDE.matches);
+    markSelection();
 
     try {
       const file = await PaperStore.getFile(paper.id);
@@ -1481,9 +1595,28 @@
     if (event.target === els.dialog && els.form.hidden) els.dialog.close();
   });
   els.dialog.addEventListener('close', () => {
-    releaseFileUrl();
-    sheet = null;
+    if (!els.dialog.open) cleanUpSheet();
   });
+  // Le volet de droite n'est pas une fenêtre modale : Échap le ferme quand même.
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && els.dialog.open && els.dialog.classList.contains('as-panel')) {
+      if (!els.viewer.open) els.dialog.close();
+    }
+  });
+  // Passage d'un écran large à un écran étroit (fenêtre redimensionnée) : la
+  // fiche ouverte en volet est refermée plutôt que laissée hors de l'écran.
+  WIDE.addEventListener('change', () => {
+    if (els.dialog.classList.contains('as-panel')) closeSheet();
+  });
+
+  // Ordinateur : barre latérale.
+  els.sideNav.addEventListener('click', (event) => {
+    const button = event.target.closest('.side-item');
+    if (!button) return;
+    view.category = button.dataset.filter;
+    render();
+  });
+  els.sideAdd.addEventListener('click', openAdd);
 
   els.viewer.addEventListener('click', (event) => {
     if (event.target.closest('[data-close]')) els.viewer.close();
@@ -1492,6 +1625,7 @@
 
   // Rappels.
   els.bell.addEventListener('click', openReminders);
+  els.sideBell.addEventListener('click', openReminders);
   els.remindersEnable.addEventListener('click', enableNotifications);
   els.remindersTest.addEventListener('click', sendTestNotification);
   els.remindersDialog.addEventListener('click', (event) => {
@@ -1501,6 +1635,7 @@
   });
   // Sauvegarde et installation.
   els.menuButton.addEventListener('click', openSettings);
+  els.sideMenu.addEventListener('click', openSettings);
   els.backupExport.addEventListener('click', exportBackup);
   els.backupImport.addEventListener('change', () => {
     const file = els.backupImport.files && els.backupImport.files[0];
