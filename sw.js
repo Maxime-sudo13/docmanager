@@ -8,17 +8,20 @@
  *    permet (application installée sur Android), il vérifie aussi les
  *    échéances de temps en temps, application fermée.
  *
- * 2. Le fonctionnement hors ligne. Il garde une copie des fichiers de
- *    l'application et la sert aussitôt, même sans réseau. En parallèle il
- *    redemande chaque fichier au serveur : si une version plus récente
- *    existe, elle remplace la copie et l'application propose de recharger.
+ * 2. Le fonctionnement hors ligne. Avec du réseau, chaque fichier de
+ *    l'application est pris en ligne, donc toujours dans sa dernière version,
+ *    et une copie en est gardée. Sans réseau (ou si le réseau ne répond pas
+ *    dans les 4 secondes), c'est la copie qui sert.
  *
  * Il ne garde que les fichiers de l'application. Les papiers, eux, sont dans
  * IndexedDB (voir store.js) et n'ont jamais besoin du réseau.
  */
 importScripts('store.js', 'reminders.js');
 
-const CACHE = 'mes-papiers';
+// Changer ce nom à chaque changement de fonctionnement du service worker :
+// la nouvelle version efface alors les copies laissées par les anciennes.
+const CACHE = 'mes-papiers-v2';
+const NETWORK_TIMEOUT = 4000; // millisecondes
 
 // Tout ce qu'il faut pour démarrer sans réseau.
 const FILES = [
@@ -55,54 +58,54 @@ self.addEventListener('install', (event) => {
   );
 });
 
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+// La nouvelle version prend la main tout de suite et supprime les copies
+// des anciennes versions. S'il y en avait, les pages ouvertes peuvent
+// afficher encore l'ancienne application (version d'avant le 12 novembre
+// 2026) : celle-ci sait proposer « Une nouvelle version est prête », et le
+// rechargement affiche la nouvelle. La nouvelle application, elle, ignore ce
+// message : chargée avec du réseau, elle est forcément à jour.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      const old = (await caches.keys()).filter((name) => name !== CACHE);
+      await Promise.all(old.map((name) => caches.delete(name)));
+      await self.clients.claim();
+      if (old.length === 0) return;
+      const windows = await self.clients.matchAll({ type: 'window' });
+      for (const client of windows) client.postMessage({ type: 'update-available' });
+    })()
+  );
+});
 
-async function sameContent(a, b) {
-  const [first, second] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
-  if (first.byteLength !== second.byteLength) return false;
-  const x = new Uint8Array(first);
-  const y = new Uint8Array(second);
-  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return false;
-  return true;
-}
-
-async function announceUpdate() {
-  const windows = await self.clients.matchAll({ type: 'window' });
-  for (const client of windows) client.postMessage({ type: 'update-available' });
-}
-
-// Redemande le fichier au serveur et met la copie à jour. Renvoie la réponse
-// du serveur, ou null sans réseau.
-async function refresh(cache, key, cached) {
-  let fresh;
+async function fromNetwork(key) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), NETWORK_TIMEOUT);
   try {
-    fresh = await fetch(key, { cache: 'no-cache' });
-  } catch (error) {
-    return null;
+    return await fetch(key, { cache: 'no-cache', signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
   }
-  if (!fresh.ok) return fresh;
-  const changed = cached ? !(await sameContent(cached, fresh.clone())) : false;
-  await cache.put(key, fresh.clone());
-  if (changed) await announceUpdate();
-  return fresh;
 }
 
-async function respond(event, key) {
+async function respond(key) {
   const cache = await caches.open(CACHE);
-  const cached = await cache.match(key);
-  // La copie servie à la page est lue par elle : la comparaison avec la
-  // version du serveur se fait sur un double, pris avant.
-  const update = refresh(cache, key, cached ? cached.clone() : null);
-  event.waitUntil(update.catch(() => {}));
-  if (cached) return cached;
-  const fresh = await update;
-  return (
-    fresh ||
-    new Response('Mes papiers : ce fichier demande une connexion.', {
+  try {
+    const fresh = await fromNetwork(key);
+    if (fresh.ok) {
+      await cache.put(key, fresh.clone());
+      return fresh;
+    }
+    const cached = await cache.match(key);
+    return cached || fresh;
+  } catch (error) {
+    // Pas de réseau, ou trop lent : la copie.
+    const cached = await cache.match(key);
+    if (cached) return cached;
+    return new Response('Mes papiers : ce fichier demande une connexion.', {
       status: 503,
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-    })
-  );
+    });
+  }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -111,7 +114,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   // La copie est rangée sans ce qui suit le « ? » (par exemple « ?date=… »).
-  event.respondWith(respond(event, url.origin + url.pathname));
+  event.respondWith(respond(url.origin + url.pathname));
 });
 
 /* ---------- Rappels ---------- */

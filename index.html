@@ -28,7 +28,12 @@
   <meta name="apple-mobile-web-app-title" content="Mes papiers">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
-  <link rel="stylesheet" href="style.css">
+  <!--
+    « ?v=… » : numéro de version, à changer à chaque mise en ligne. Le
+    navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
+    qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
+  -->
+  <link rel="stylesheet" href="style.css?v=2026-11-12">
 </head>
 <body>
 
@@ -325,9 +330,9 @@
     </div>
   </dialog>
 
-  <script src="store.js"></script>
-  <script src="reminders.js"></script>
-  <script src="backup.js"></script>
-  <script src="app.js"></script>
+  <script src="store.js?v=2026-11-12"></script>
+  <script src="reminders.js?v=2026-11-12"></script>
+  <script src="backup.js?v=2026-11-12"></script>
+  <script src="app.js?v=2026-11-12"></script>
 </body>
 </html>

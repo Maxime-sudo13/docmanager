@@ -255,6 +255,25 @@ ici pour qu'il puisse le relire et le contester.
 
 À respecter dans les étapes suivantes.
 
+- **Mise à jour de l'application (12 novembre 2026).** Après la mise en
+  ligne du design, l'utilisateur voyait encore l'ancienne version, même en
+  touchant « Recharger » : l'ancien service worker servait sa copie d'abord,
+  et le navigateur réutilisait ses fichiers en mémoire (GitHub Pages les
+  déclare valables 10 minutes). Désormais :
+  - **le service worker prend le réseau d'abord** (attente maximale de 4 s),
+    et sa copie ne sert que hors ligne ; il n'annonce plus de nouvelle
+    version, puisqu'une page chargée en ligne est forcément à jour ;
+  - **son cache s'appelle `mes-papiers-v2`** ; à l'activation, il supprime
+    tout autre cache (donc les copies des anciennes versions). Changer ce nom
+    chaque fois que le fonctionnement du service worker change ;
+  - **`index.html` charge ses fichiers avec `?v=…`** (`style.css`,
+    `store.js`, `reminders.js`, `backup.js`, `app.js`). **À chaque mise en
+    ligne, changer ce numéro sur les cinq lignes**, sinon le navigateur peut
+    garder l'ancien fichier jusqu'à 10 minutes ;
+  - **le service worker est enregistré avec `updateViaCache: 'none'`**, pour
+    que sa propre mise à jour ne passe jamais par le cache du navigateur.
+  Pour passer des anciennes versions à celle-ci, il faut toucher
+  « Recharger » une ou deux fois, une seule fois.
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la
   règle de sécurité autorise `font-src 'self' file:`.
 - **Volet de droite** : sur grand écran, la fiche d'un papier est le même

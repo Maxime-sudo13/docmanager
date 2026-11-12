@@ -707,7 +707,7 @@
       return Promise.resolve(null);
     }
     return navigator.serviceWorker
-      .register('sw.js')
+      .register('sw.js', { updateViaCache: 'none' })
       .then(() => navigator.serviceWorker.ready)
       .catch((error) => {
         console.error(error);
@@ -1677,10 +1677,7 @@
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (!event.data) return;
       if (event.data.type === 'open-paper') openPaperById(event.data.id);
-      // Le service worker a trouvé une version plus récente de l'application.
-      if (event.data.type === 'update-available') {
-        showToast('Une nouvelle version est prête.', () => location.reload(), 'Recharger', 30000);
-      }
+
     });
   }
 
