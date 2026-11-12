@@ -59,8 +59,8 @@ la suivante.
 | 3. Liste triée, filtre, recherche | Livrée |
 | 4. Rappels | Livrée |
 | 5. Export de sauvegarde, installation | Livrée |
-| 6. Mise en ligne sur GitHub Pages | Préparée, historique nettoyé ; reste à fusionner et à régler GitHub (voir « Ce qu'il reste pour la mise en ligne ») |
-| 7. Retravail du design | À faire, après la mise en ligne |
+| 6. Mise en ligne sur GitHub Pages | Livrée : https://maxime-sudo13.github.io/docmanager/ |
+| 7. Retravail du design | Livrée, en attente de test |
 
 ## Retours de l'utilisateur
 
@@ -71,6 +71,10 @@ la suivante.
   laisser choisir, avant de toucher au code. Les contraintes restent : pas de
   framework, aucune ressource externe (une police de caractères doit être
   embarquée dans le dépôt), téléphone d'abord.
+
+- **12 novembre 2026, étape 7** : sur trois maquettes (A « Papeterie »,
+  B « Net et lumineux », C « Doux et coloré »), l'utilisateur choisit A, avec
+  le résumé du haut en trois cases séparées comme sur C.
 
 ## Décisions prises en cours de route
 
@@ -211,6 +215,26 @@ ici pour qu'il puisse le relire et le contester.
   de l'hébergement gratuit. Son adresse e-mail personnelle, présente dans le
   premier commit, doit être retirée de l'historique avant.
 
+Étape 7 (design « Papeterie ») :
+
+- **Deux polices embarquées**, Fraunces (titres) et Figtree (texte), sous
+  licence SIL OFL, dans `fonts/`. Environ 100 Ko en tout, gardées hors ligne.
+- **Couleurs** : papier crème et encre bleu nuit ; chaque catégorie a sa
+  couleur ; un thème sombre assorti suit le réglage du téléphone.
+- **Chaque papier est une fiche** avec une tranche de couleur sur le bord
+  (sa catégorie) et un petit calendrier : le mois en haut, le jour en grand,
+  l'année si ce n'est pas celle en cours, en rouge si l'échéance est passée.
+  La vignette de la photo n'est plus dans la liste : elle reste en tête de la
+  fiche du papier. La date sans urgence n'est plus répétée en toutes lettres.
+- **Résumé en trois cases** sous le titre : en retard, cette semaine (7
+  jours), à traiter. Une case sans rien à signaler s'éteint. Il remplace le
+  compteur de l'en-tête. La date du jour s'affiche sous le titre.
+- **Ordinateur (à partir de 1100 px de large) : trois volets.** À gauche, les
+  catégories avec leur nombre de papiers, « Ajouter un papier », « Rappels »
+  et « Sauvegarde ». Au milieu, la liste. À droite, la fiche du papier choisi,
+  qui ne masque plus la liste ; Échap la ferme. Entre 640 et 1100 px, la mise
+  en page du téléphone, centrée.
+
 ## Ce qu'il reste pour la mise en ligne
 
 1. **Historique nettoyé, fait le 12 novembre 2026.** L'adresse personnelle de
@@ -231,6 +255,13 @@ ici pour qu'il puisse le relire et le contester.
 
 À respecter dans les étapes suivantes.
 
+- **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la
+  règle de sécurité autorise `font-src 'self' file:`.
+- **Volet de droite** : sur grand écran, la fiche d'un papier est le même
+  `<dialog>` que sur téléphone, ouvert sans être modal (`show()`, classe
+  `as-panel`) ; l'ajout d'un papier reste une fenêtre par-dessus. Le ménage à
+  la fermeture est fait tout de suite (`closeSheet()`), pas à l'annonce
+  `close` du navigateur, qui arrive après l'ouverture du papier suivant.
 - **Fichiers à la racine** : `index.html`, `style.css`, `store.js`,
   `reminders.js`, `backup.js`, `app.js`, `sw.js`, `manifest.webmanifest`,
   `icon.svg`. Un seul sous-dossier, `icons/`, pour les icônes PNG de

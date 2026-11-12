@@ -95,3 +95,4 @@ testera après la mise en ligne.
 | `manifest.webmanifest` | Description de l'application pour l'installation |
 | `icons/` | Icônes de l'application installée |
 | `icon.svg` | Icône de l'onglet |
+| `fonts/` | Polices Fraunces et Figtree (licence SIL OFL) |
