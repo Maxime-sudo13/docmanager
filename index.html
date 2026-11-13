@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-13c">
+  <link rel="stylesheet" href="style.css?v=2026-11-13e">
 </head>
 <body>
 
@@ -185,6 +185,13 @@
             <span class="choice-hint">Image ou PDF déjà sur l'appareil</span>
           </span>
         </label>
+        <button id="note-choice" class="choice" type="button">
+          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span class="choice-text">
+            <span class="choice-title">Écrire ou dicter une note</span>
+            <span class="choice-hint">Sans document, par exemple après un appel</span>
+          </span>
+        </button>
       </div>
 
       <form id="paper-form" class="paper-form" novalidate hidden>
@@ -206,7 +213,7 @@
             <button id="change-button" class="link-button" type="button">Changer</button>
           </div>
           <!-- Pages suivantes d'un courrier de plusieurs pages. -->
-          <div class="pages">
+          <div id="pages-block" class="pages">
             <div id="pages-list" class="pages-list"></div>
             <label class="page-add">
               <input id="page-input" class="visually-hidden" type="file" accept="image/*,application/pdf">
@@ -215,6 +222,16 @@
             </label>
           </div>
           <p id="done-status" class="done-status" hidden></p>
+        </div>
+
+        <button id="note-toggle" class="link-button note-toggle" type="button" aria-controls="note-field" aria-expanded="false">+ Ajouter une note</button>
+        <div id="note-field" class="field">
+          <label for="note">Note <span id="note-optional" class="optional">facultative</span></label>
+          <textarea id="note" name="note" rows="3" maxlength="2000"
+                    placeholder="Ex. : rappeler le notaire, envoyer l'acte avant le 20"
+                    aria-describedby="note-hint note-error"></textarea>
+          <p id="note-hint" class="hint">Pour dicter, touchez le micro du clavier.</p>
+          <p id="note-error" class="field-error" hidden>Écrire ou dicter la note.</p>
         </div>
 
         <fieldset class="field">
@@ -353,9 +370,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-13c"></script>
-  <script src="reminders.js?v=2026-11-13c"></script>
-  <script src="backup.js?v=2026-11-13c"></script>
-  <script src="app.js?v=2026-11-13c"></script>
+  <script src="store.js?v=2026-11-13e"></script>
+  <script src="reminders.js?v=2026-11-13e"></script>
+  <script src="backup.js?v=2026-11-13e"></script>
+  <script src="app.js?v=2026-11-13e"></script>
 </body>
 </html>

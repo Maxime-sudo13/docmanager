@@ -122,6 +122,13 @@
     deleteYes: $('delete-yes'),
     sheetError: $('sheet-error'),
     pagesList: $('pages-list'),
+    pagesBlock: $('pages-block'),
+    noteChoice: $('note-choice'),
+    noteField: $('note-field'),
+    noteToggle: $('note-toggle'),
+    note: $('note'),
+    noteOptional: $('note-optional'),
+    noteError: $('note-error'),
     pageInput: $('page-input'),
     viewer: $('viewer'),
     viewerTitle: $('viewer-title'),
@@ -252,6 +259,7 @@
         paper.organisation,
         categoryLabel(paper.category),
         paper.fileName,
+        paper.note || '',
         date ? Reminders.formatDay(formats.long, date) : '',
       ].join(' ')
     );
@@ -409,9 +417,11 @@
     }
     const pageCount = 1 + (paper.extraPages || []).length;
     if (pageCount > 1) meta.append(el('span', 'paper-pages', pageCount + ' pages'));
+    const noteLine = (paper.note || '').split('\n').find((line) => line.trim()) || '';
 
     const text = el('span', 'paper-text');
     text.append(el('span', 'paper-title', paper.organisation), meta);
+    if (noteLine) text.append(el('span', 'paper-note', noteLine.trim()));
     open.append(date, text);
 
     const done = el('button', 'paper-done');
@@ -1206,6 +1216,7 @@
     setFieldError(els.categoryError, null, false);
     setFieldError(els.organisationError, els.organisation, false);
     setFieldError(els.dueDateError, els.dueDate, false);
+    setFieldError(els.noteError, els.note, false);
   }
 
   function releaseFileUrl() {
@@ -1267,6 +1278,40 @@
     );
   }
 
+  // Une note sans document : pas d'aperçu ni de pages, la note devient le
+  // champ principal (obligatoire).
+  function setNoteOnly(on) {
+    if (sheet) sheet.noteOnly = on;
+    els.pagesBlock.hidden = on;
+    els.noteOptional.hidden = on;
+    showNoteField(on || els.note.value.trim() !== '');
+    if (on) {
+      // L'aperçu d'un document n'a pas lieu d'être ; il revient avec showPreview().
+      els.previewOpen.hidden = true;
+      els.previewFile.hidden = true;
+    }
+  }
+
+  // Pour un papier avec document, la note est repliée derrière « + Ajouter
+  // une note », pour que le bouton d'enregistrement reste visible sans
+  // faire défiler sur un téléphone.
+  function showNoteField(open) {
+    els.noteField.hidden = !open;
+    els.noteToggle.hidden = open;
+    els.noteToggle.setAttribute('aria-expanded', String(open));
+  }
+
+  function chooseNote() {
+    if (!sheet || sheet.mode !== 'add') return;
+    els.sheetError.hidden = true;
+    releaseFileUrl();
+    sheet.file = null;
+    setNoteOnly(true);
+    els.previewCaption.textContent = 'Note sans document';
+    showStep('form');
+    els.note.focus();
+  }
+
   function showStep(step) {
     els.stepChoose.hidden = step !== 'choose';
     els.form.hidden = step !== 'form';
@@ -1298,9 +1343,10 @@
 
   function openAdd() {
     closeSheet();
-    sheet = { mode: 'add', file: null, fileUrl: null, pages: [], removedPages: [] };
+    sheet = { mode: 'add', file: null, fileUrl: null, pages: [], removedPages: [], noteOnly: false };
     renderPages();
     resetForm();
+    setNoteOnly(false);
     els.dialogTitle.textContent = 'Nouveau papier';
     els.saveButton.textContent = 'Ajouter';
     els.changeButton.hidden = false;
@@ -1320,6 +1366,7 @@
       return;
     }
     releaseFileUrl();
+    setNoteOnly(false);
     sheet.file = file;
     sheet.fileUrl = URL.createObjectURL(file);
     els.previewCaption.textContent = kindLabel(file.type) + ' · ' + formatSize(file.size);
@@ -1329,9 +1376,11 @@
 
   async function openEdit(paper) {
     closeSheet();
-    const current = { mode: 'edit', paper, fileUrl: null, pages: [], removedPages: [] };
+    const current = { mode: 'edit', paper, fileUrl: null, pages: [], removedPages: [], noteOnly: false };
     sheet = current;
     resetForm();
+    els.note.value = paper.note || '';
+    setNoteOnly(Boolean(paper.noFile));
     els.dialogTitle.textContent = 'Détails du papier';
     els.saveButton.textContent = 'Enregistrer';
     els.changeButton.hidden = true;
@@ -1349,18 +1398,17 @@
     els.organisation.value = paper.organisation;
     els.dueDate.value = paper.dueDate || '';
     renderReminderRow();
-    els.previewCaption.textContent =
-      kindLabel(paper.type) +
-      ' · ' +
-      formatSize(paper.size) +
-      ' · ajouté le ' +
-      Reminders.formatDay(formats.long, new Date(paper.createdAt));
+    const added = Reminders.formatDay(formats.long, new Date(paper.createdAt));
+    els.previewCaption.textContent = paper.noFile
+      ? 'Note sans document · ajoutée le ' + added
+      : kindLabel(paper.type) + ' · ' + formatSize(paper.size) + ' · ajouté le ' + added;
 
     // En attendant le fichier, on montre la vignette.
-    showPreview(paper.type, thumbnailUrl(paper), false);
+    if (!paper.noFile) showPreview(paper.type, thumbnailUrl(paper), false);
     showStep('form');
     showSheet(WIDE.matches);
     markSelection();
+    if (paper.noFile) return;
 
     try {
       const file = await PaperStore.getFile(paper.id);
@@ -1397,6 +1445,9 @@
       (els.dueDate.validity && els.dueDate.validity.badInput) ||
       (dueValue !== '' && !parseDay(dueValue));
 
+    const note = els.note.value.trim().slice(0, 2000);
+    const noteMissing = Boolean(sheet && sheet.noteOnly) && !note;
+    setFieldError(els.noteError, els.note, noteMissing);
     setFieldError(els.categoryError, null, !checked);
     setFieldError(els.organisationError, els.organisation, !organisation);
     setFieldError(els.dueDateError, els.dueDate, dueIncomplete);
@@ -1406,6 +1457,10 @@
     const previous = sheet && sheet.mode === 'edit' ? sheet.paper.dueDate : undefined;
     const reminded = (dueValue || null) !== previous ? Reminders.armed(dueValue) : undefined;
 
+    if (noteMissing) {
+      els.note.focus();
+      return null;
+    }
     if (!checked) {
       els.categoryChips.querySelector('input').focus();
       return null;
@@ -1418,7 +1473,7 @@
       els.dueDate.focus();
       return null;
     }
-    const fields = { category: checked.value, organisation, dueDate: dueValue || null };
+    const fields = { category: checked.value, organisation, dueDate: dueValue || null, note };
     if (reminded) fields.reminded = reminded;
     return fields;
   }
@@ -1443,7 +1498,9 @@
       let id;
       if (sheet.mode === 'add') {
         id = newId();
-        const prepared = await prepareFile(sheet.file);
+        const prepared = sheet.noteOnly
+          ? { blob: null, type: '', fileName: '', thumbnail: null }
+          : await prepareFile(sheet.file);
         await PaperStore.add(
           Object.assign(fields, {
             id,
@@ -1451,7 +1508,8 @@
             doneAt: null,
             fileName: prepared.fileName,
             type: prepared.type,
-            size: prepared.blob.size,
+            size: prepared.blob ? prepared.blob.size : 0,
+            noFile: Boolean(sheet.noteOnly),
             thumbnail: prepared.thumbnail,
             createdAt: now,
             updatedAt: now,
@@ -1677,6 +1735,12 @@
 
   els.form.addEventListener('submit', onSubmit);
   els.categoryChips.addEventListener('change', () => setFieldError(els.categoryError, null, false));
+  els.note.addEventListener('input', () => setFieldError(els.noteError, els.note, false));
+  els.noteChoice.addEventListener('click', chooseNote);
+  els.noteToggle.addEventListener('click', () => {
+    showNoteField(true);
+    els.note.focus();
+  });
   els.organisation.addEventListener('input', () =>
     setFieldError(els.organisationError, els.organisation, false)
   );

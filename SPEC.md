@@ -62,7 +62,9 @@ la suivante.
 | 5. Export de sauvegarde, installation | Livrée |
 | 6. Mise en ligne sur GitHub Pages | Livrée : https://maxime-sudo13.github.io/docmanager/ |
 | 7. Retravail du design | Livrée |
-| 8. Plusieurs pages, apparence, rappel de sauvegarde | Livrée, en attente de test |
+| 8. Plusieurs pages, apparence, rappel de sauvegarde | Livrée |
+| 9. Notes : écrire ou dicter, avec ou sans document | Livrée, en attente de test |
+| 10. Repérer seul dates et actions dans une note | À faire, plus tard (idée 3 de l'analyse du 13 novembre) |
 
 ## Retours de l'utilisateur
 
@@ -260,6 +262,22 @@ reviennent sont remises à plus tard) :
 - **Plan de commercialisation** : rédigé à part, dans un document Claude Docs
   (pas dans ce dépôt public).
 
+Étape 9 (13 novembre 2026) : première marche de l'idée « transformer une
+conversation en choses à faire », réduite à ce qui tient sans IA ni serveur.
+
+- **« Écrire ou dicter une note »**, troisième choix de « Ajouter un papier » :
+  un papier sans document, dont la note est obligatoire. On dicte avec le
+  micro du clavier du téléphone (l'application n'enregistre rien elle-même).
+  Catégorie, organisme et date limite comme pour un papier, donc les mêmes
+  rappels.
+- **Tous les papiers ont un champ « Note »** facultatif, replié derrière
+  « + Ajouter une note » quand il y a un document (sinon « Ajouter » ne
+  tient plus dans l'écran d'un téléphone), déplié s'il est déjà rempli.
+- La première ligne de la note s'affiche dans la liste ; la recherche fouille
+  la note.
+- **Plus tard (étape 10)** : repérer seul, sur le téléphone, les dates et les
+  verbes d'action dans la note pour préremplir la date limite.
+
 ## Ce qu'il reste pour la mise en ligne
 
 1. **Historique nettoyé, fait le 12 novembre 2026.** L'adresse personnelle de
@@ -307,6 +325,10 @@ reviennent sont remises à plus tard) :
 - **Réglages de l'appareil** dans `localStorage` : `mes-papiers.theme`,
   `mes-papiers.rappel-sauvegarde` (fin du « Plus tard »), en plus de la date
   de dernière sauvegarde.
+- **Notes** : champ `note` (texte, 2 000 caractères au plus) sur toutes les
+  fiches ; `noFile: true` pour un papier sans document, qui n'a alors aucune
+  entrée dans la table `files` (`PaperStore.add(paper, null)`), `size` 0 et
+  pas de pages. Dans la sauvegarde, une telle fiche a `file: null`.
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la
   règle de sécurité autorise `font-src 'self' file:`.
 - **Volet de droite** : sur grand écran, la fiche d'un papier est le même
