@@ -87,7 +87,8 @@ la suivante.
 | 12. Objets (voiture, logement, appareils) | Livrée (page à part depuis la PR #14) |
 | 13. Papiers à conserver | Livrée, en attente de test |
 | 13 bis. Créer un objet sans papier, rattacher des papiers existants | Livrée (PR #15) |
-| 13 ter. Catégories personnelles, objet choisi dans une liste, papiers à conserver sans date | Livrée, en attente de test |
+| 13 ter. Catégories personnelles, objet choisi dans une liste, papiers à conserver sans date | Livrée (PR #16) |
+| 13 quater. Groupes repliables, objets rangés par type | Livrée, en attente de test |
 | 14. Nouvelle structure : « À faire », « Classeur », « Objets » | Proposée, à valider |
 
 ## Retours de l'utilisateur
@@ -428,6 +429,25 @@ iPhone) :
   puis « + Nouvel objet… », qui fait apparaître un champ pour le nommer.
   Remplace la saisie libre avec suggestions, que l'iPhone ne montrait pas.
 
+Étape 13 quater (14 novembre 2026, retours de l'utilisateur : « réduire les
+onglets, sinon ça va faire une longue liste », et « si j'ai 2 voitures, 2
+téléphones, 2 chiens, il faudrait des catégories aux objets ») :
+
+- **Chaque groupe se replie** d'un toucher sur son titre (« À traiter »,
+  « Prélevés automatiquement », « À conserver », « Traités »), avec une petite
+  flèche et le nombre de papiers. L'appareil s'en souvient, page par page
+  (la page des papiers et celle d'un objet ont chacune leurs réglages).
+  **« Traités » est replié d'office** sur la page des papiers : c'est la liste
+  qui s'allonge sans fin. **Pendant une recherche, tout est déplié**, pour
+  qu'aucun résultat ne reste caché. Un titre masqué (un seul groupe) ne
+  replie jamais sa liste.
+- **La page « Objets » est rangée par type**, une rubrique repliable par
+  type : Véhicules, Logements, Appareils, Animaux, Personnes, Autres. Deux
+  types ajoutés : **Animal** (un chien, un chat : vétérinaire, assurance) et
+  **Personne** (un enfant, un parent : ses papiers à part). Un objet né d'un
+  papier, sans type choisi, est dans « Autres » ; « Modifier l'objet » lui en
+  donne un.
+
 ## Structure proposée pour la suite (à valider)
 
 L'application n'est plus seulement une boîte à papiers : elle a des
@@ -490,7 +510,7 @@ l'utilisateur, avec une maquette avant.
   `extraPages`. `PaperStore.addPage`, `removePage`, `getPages` ; `remove`
   efface aussi les pages. Dans la sauvegarde : `pages: [{ file, type }]` par
   papier, fichiers `…-page-2.pdf`.
-- **Réglages de l'appareil** dans `localStorage` : `mes-papiers.theme`,
+- **Réglages de l'appareil** dans `localStorage` : `mes-papiers.replie`, `mes-papiers.theme`,
   `mes-papiers.rappel-sauvegarde` (fin du « Plus tard »), en plus de la date
   de dernière sauvegarde.
 - **Notes** : champ `note` (texte, 2 000 caractères au plus) sur toutes les
@@ -536,6 +556,10 @@ l'utilisateur, avec une maquette avant.
   `CATEGORIES` dans `app.js` est désormais variable (base + personnelles).
   Sauvegarde : liste `categories` dans `mes-papiers.json`, restaurée avant
   les papiers.
+- **Groupes repliables** : réglage de l'appareil `mes-papiers.replie`
+  (`localStorage`), objet `{ "<page>:<groupe>": vrai/faux }`, par exemple
+  `papers:done`, `thing:keep`, `things:kind-animal`. Types d'objets :
+  `vehicule`, `logement`, `appareil`, `animal`, `personne`, `autre`.
 - **`icons/chevron.svg`** : la flèche de la liste « Revient » (une image, la
   règle de sécurité interdisant les images `data:`).
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la

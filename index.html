@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-14c">
+  <link rel="stylesheet" href="style.css?v=2026-11-14d">
 </head>
 <body>
 
@@ -147,7 +147,8 @@
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
         Nouvel objet
       </button>
-      <ul id="things-grid" class="things-grid"></ul>
+      <!-- Les objets, rangés par type : véhicules, logements, appareils… -->
+      <div id="things-grid" class="things-groups"></div>
       <div id="things-empty" class="things-empty" hidden>
         <span class="things-empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.6V5a1.5 1.5 0 0 1 1.5-1.5h7.6l8 8a1.5 1.5 0 0 1 0 2.1l-7.5 7.5a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.4"/></svg></span>
         <h2>Aucun objet pour l'instant</h2>
@@ -169,24 +170,24 @@
 
     <!-- Les papiers à traiter d'abord, par échéance la plus proche. -->
     <section id="todo-section" class="group" aria-labelledby="todo-title" hidden>
-      <h2 id="todo-title" class="group-title">À traiter <span id="todo-count" class="group-count"></span></h2>
+      <h2 id="todo-title" class="group-title"><button class="fold" type="button" data-fold="todo" aria-controls="todo-list" aria-expanded="true">À traiter<span id="todo-count" class="group-count"></span><span class="fold-icon" aria-hidden="true"></span></button></h2>
       <ul id="todo-list" class="paper-list"></ul>
     </section>
 
     <!-- Prélèvements automatiques : rien à faire, la date avance seule. -->
     <section id="auto-section" class="group" aria-labelledby="auto-title" hidden>
-      <h2 id="auto-title" class="group-title">Prélevés automatiquement <span id="auto-count" class="group-count"></span></h2>
+      <h2 id="auto-title" class="group-title"><button class="fold" type="button" data-fold="auto" aria-controls="auto-list" aria-expanded="true">Prélevés automatiquement<span id="auto-count" class="group-count"></span><span class="fold-icon" aria-hidden="true"></span></button></h2>
       <ul id="auto-list" class="paper-list"></ul>
     </section>
 
     <!-- Les papiers à garder : rien à faire, on les retrouve ici. -->
     <section id="keep-section" class="group" aria-labelledby="keep-title" hidden>
-      <h2 id="keep-title" class="group-title">À conserver <span id="keep-count" class="group-count"></span></h2>
+      <h2 id="keep-title" class="group-title"><button class="fold" type="button" data-fold="keep" aria-controls="keep-list" aria-expanded="true">À conserver<span id="keep-count" class="group-count"></span><span class="fold-icon" aria-hidden="true"></span></button></h2>
       <ul id="keep-list" class="paper-list"></ul>
     </section>
 
     <section id="done-section" class="group" aria-labelledby="done-title" hidden>
-      <h2 id="done-title" class="group-title">Traités <span id="done-count" class="group-count"></span></h2>
+      <h2 id="done-title" class="group-title"><button class="fold" type="button" data-fold="done" aria-controls="done-list" aria-expanded="true">Traités<span id="done-count" class="group-count"></span><span class="fold-icon" aria-hidden="true"></span></button></h2>
       <ul id="done-list" class="paper-list"></ul>
     </section>
 
@@ -580,9 +581,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-14c"></script>
-  <script src="reminders.js?v=2026-11-14c"></script>
-  <script src="backup.js?v=2026-11-14c"></script>
-  <script src="app.js?v=2026-11-14c"></script>
+  <script src="store.js?v=2026-11-14d"></script>
+  <script src="reminders.js?v=2026-11-14d"></script>
+  <script src="backup.js?v=2026-11-14d"></script>
+  <script src="app.js?v=2026-11-14d"></script>
 </body>
 </html>
