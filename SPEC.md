@@ -464,6 +464,11 @@ ou de l'affecter à une catégorie déjà existante ») :
   par « + Nouvelle » en retapant un nom existant) : une liste déroulante,
   comme « Objet concerné » dans la fiche d'un papier, avec en dernier
   « + Nouvelle catégorie… », qui fait apparaître le champ du nom.
+- **« + Nouvelle catégorie » sur la page « Objets »**, à côté de « + Nouvel
+  objet » (demande de l'utilisateur, 14 novembre 2026). Une catégorie
+  d'objets créée là, sans couleur, a aussitôt sa rubrique, même vide :
+  « Aucun objet pour l'instant » et « + Ajouter un objet », qui ouvre
+  « Nouvel objet » avec cette catégorie déjà choisie.
 - **La dernière catégorie choisie est proposée pour l'objet suivant**
   (créer deux chiens d'affilée).
 - Sur la page « Objets », une catégorie ajoutée a sa rubrique, sous son nom

@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-14f">
+  <link rel="stylesheet" href="style.css?v=2026-11-14g">
 </head>
 <body>
 
@@ -143,10 +143,10 @@
 
     <!-- Page « Objets » : une carte par voiture, logement, appareil… -->
     <section id="things-page" class="things-page" aria-label="Objets" hidden>
-      <button id="thing-new" class="btn btn-secondary thing-new" type="button">
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-        Nouvel objet
-      </button>
+      <div class="things-actions">
+        <button id="thing-new" class="btn btn-secondary thing-new" type="button">+ Nouvel objet</button>
+        <button id="kind-new-page" class="btn btn-secondary thing-new" type="button">+ Nouvelle catégorie</button>
+      </div>
       <!-- Les objets, rangés par type : véhicules, logements, appareils… -->
       <div id="things-grid" class="things-groups"></div>
       <div id="things-empty" class="things-empty" hidden>
@@ -591,9 +591,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-14f"></script>
-  <script src="reminders.js?v=2026-11-14f"></script>
-  <script src="backup.js?v=2026-11-14f"></script>
-  <script src="app.js?v=2026-11-14f"></script>
+  <script src="store.js?v=2026-11-14g"></script>
+  <script src="reminders.js?v=2026-11-14g"></script>
+  <script src="backup.js?v=2026-11-14g"></script>
+  <script src="app.js?v=2026-11-14g"></script>
 </body>
 </html>
