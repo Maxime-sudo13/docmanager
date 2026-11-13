@@ -280,6 +280,7 @@ const Backup = (function () {
       version: VERSION,
       exportedAt: now.toISOString(),
       papers: described,
+      things: await PaperStore.listThings(),
     };
     zip.add(MANIFEST, encoder.encode(JSON.stringify(manifest, null, 2)));
     return { blob: zip.finish(), name: fileName(now), count: described.length };
@@ -291,6 +292,7 @@ const Backup = (function () {
   const instant = (value) =>
     typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : null;
   const day = (value) => (Reminders.parseDay(value) ? value : null);
+  const THING_KINDS = ['vehicule', 'logement', 'appareil', 'autre'];
 
   // Une sauvegarde vient de l'extérieur : on ne reprend que les champs
   // connus, et on vérifie chacun. Renvoie null si la fiche est inutilisable.
@@ -372,6 +374,24 @@ const Backup = (function () {
       );
       failure.name = 'BackupFormatError';
       throw failure;
+    }
+
+    // Les objets créés à la main : on ajoute ceux qui manquent.
+    if (Array.isArray(manifest.things)) {
+      const knownThings = new Set((await PaperStore.listThings()).map((thing) => thing.id));
+      for (const raw of manifest.things.slice(0, 1000)) {
+        if (!raw || typeof raw !== 'object') continue;
+        const id = text(raw.id, 100);
+        const name = text(raw.name, 60).replace(/\s+/g, ' ');
+        if (!id || !name || knownThings.has(id)) continue;
+        await PaperStore.putThing({
+          id,
+          name,
+          kind: THING_KINDS.includes(raw.kind) ? raw.kind : 'autre',
+          createdAt: instant(raw.createdAt) || new Date().toISOString(),
+        });
+        knownThings.add(id);
+      }
     }
 
     const known = new Set((await PaperStore.list()).map((paper) => paper.id));

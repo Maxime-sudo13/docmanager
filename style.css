@@ -966,7 +966,101 @@ p {
 
 .thing-actions {
   display: flex;
-  margin: 0 -8px -6px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 8px;
+}
+
+.thing-actions .btn {
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.thing-empty {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+/* « Nouvel objet », en tête de la page des objets. */
+.thing-new {
+  width: 100%;
+  margin-bottom: 12px;
+  border-style: dashed;
+}
+
+/* Types d'objets : deux colonnes. */
+.chips.thing-kinds {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.thing-kinds .chip {
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 14px;
+}
+
+/* Rattacher un papier existant. */
+.attach-search {
+  margin-bottom: 8px;
+}
+
+.attach-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attach-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--category);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.attach-item:active {
+  background: var(--accent-soft);
+}
+
+.attach-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.attach-title {
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.attach-plus {
+  flex: none;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 650;
 }
 
 .thing-name {

@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-14a">
+  <link rel="stylesheet" href="style.css?v=2026-11-14b">
 </head>
 <body>
 
@@ -143,11 +143,15 @@
 
     <!-- Page « Objets » : une carte par voiture, logement, appareil… -->
     <section id="things-page" class="things-page" aria-label="Objets" hidden>
+      <button id="thing-new" class="btn btn-secondary thing-new" type="button">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        Nouvel objet
+      </button>
       <ul id="things-grid" class="things-grid"></ul>
       <div id="things-empty" class="things-empty" hidden>
         <span class="things-empty-icon"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.6V5a1.5 1.5 0 0 1 1.5-1.5h7.6l8 8a1.5 1.5 0 0 1 0 2.1l-7.5 7.5a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.4"/></svg></span>
         <h2>Aucun objet pour l'instant</h2>
-        <p>Une voiture, un logement, un appareil : dans la fiche d'un papier, touchez « + Objet » et donnez-lui un nom. Tous ses papiers se retrouvent ici, réunis.</p>
+        <p>Une voiture, un logement, un téléphone… Créez-le avec « Nouvel objet », puis rangez-y sa facture, son contrat, son assurance. Tous ses papiers se retrouvent réunis.</p>
       </div>
     </section>
 
@@ -156,17 +160,11 @@
       <button id="thing-back" class="link-button thing-back" type="button">‹ Tous les objets</button>
       <h2 id="thing-name" class="thing-name"></h2>
       <p id="thing-stats" class="thing-stats"></p>
-      <form id="thing-rename" class="thing-rename" novalidate hidden>
-        <label for="thing-rename-input" class="visually-hidden">Nouveau nom de l'objet</label>
-        <input id="thing-rename-input" type="text" maxlength="60" autocomplete="off" enterkeyhint="done">
-        <div class="actions">
-          <button id="thing-rename-cancel" class="btn btn-secondary" type="button">Annuler</button>
-          <button class="btn btn-primary" type="submit">Renommer</button>
-        </div>
-      </form>
-      <div id="thing-actions" class="thing-actions">
-        <button id="thing-rename-button" class="link-button" type="button">Renommer</button>
+      <div class="thing-actions">
+        <button id="thing-attach" class="btn btn-secondary" type="button">Rattacher un papier existant</button>
+        <button id="thing-edit" class="link-button" type="button">Modifier l'objet</button>
       </div>
+      <p id="thing-empty" class="thing-empty" hidden>Aucun papier pour l'instant. Ajoutez la facture d'achat, la garantie, l'abonnement ou l'assurance avec « Ajouter un papier », ou rattachez un papier déjà enregistré.</p>
     </section>
 
     <!-- Les papiers à traiter d'abord, par échéance la plus proche. -->
@@ -385,6 +383,60 @@
     </div>
   </dialog>
 
+  <!-- Créer ou modifier un objet. -->
+  <dialog id="thing-dialog" class="sheet" aria-labelledby="thing-dialog-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="thing-dialog-title">Nouvel objet</h2>
+        <button class="icon-button" type="button" data-close aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="thing-form" class="paper-form" novalidate>
+        <fieldset class="field">
+          <legend>Type</legend>
+          <div id="thing-kinds" class="chips thing-kinds"></div>
+        </fieldset>
+        <div class="field">
+          <label for="thing-name-input">Nom</label>
+          <input id="thing-name-input" type="text" maxlength="60" autocomplete="off" enterkeyhint="done"
+                 placeholder="Ex. : iPhone 15, Clio, appartement" aria-describedby="thing-name-error">
+          <p id="thing-name-error" class="field-error" hidden>Donner un nom à l'objet.</p>
+        </div>
+        <button id="thing-save" class="btn btn-primary" type="submit">Créer l'objet</button>
+        <div id="thing-delete-zone" class="delete-zone" hidden>
+          <button id="thing-delete" class="btn btn-danger-quiet" type="button">Supprimer l'objet</button>
+          <div id="thing-delete-confirm" class="delete-confirm" hidden>
+            <p id="thing-delete-text"></p>
+            <div class="actions">
+              <button id="thing-delete-cancel" class="btn btn-secondary" type="button">Annuler</button>
+              <button id="thing-delete-yes" class="btn btn-danger" type="button">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Rattacher à un objet des papiers déjà enregistrés. -->
+  <dialog id="attach-dialog" class="sheet" aria-labelledby="attach-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="attach-title">Rattacher un papier</h2>
+        <button class="icon-button" type="button" data-close aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="search attach-search">
+        <svg class="search-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="attach-search" type="search" placeholder="Rechercher un papier" aria-label="Rechercher un papier"
+               autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      </div>
+      <ul id="attach-list" class="attach-list"></ul>
+      <p id="attach-empty" class="hint" hidden>Aucun autre papier à rattacher.</p>
+    </div>
+  </dialog>
+
   <!-- Rappels : état des notifications et prochains rappels prévus. -->
   <dialog id="reminders-dialog" class="sheet" aria-labelledby="reminders-title">
     <div class="sheet-inner">
@@ -478,9 +530,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-14a"></script>
-  <script src="reminders.js?v=2026-11-14a"></script>
-  <script src="backup.js?v=2026-11-14a"></script>
-  <script src="app.js?v=2026-11-14a"></script>
+  <script src="store.js?v=2026-11-14b"></script>
+  <script src="reminders.js?v=2026-11-14b"></script>
+  <script src="backup.js?v=2026-11-14b"></script>
+  <script src="app.js?v=2026-11-14b"></script>
 </body>
 </html>

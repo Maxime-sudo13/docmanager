@@ -85,6 +85,15 @@ comme si nous étions ce jour-là, et l'indique par un bandeau.
 3. Un passeport « Valable jusqu'au » dans 5 jours affiche « Expire dans
    5 jours » et figure dans les rappels.
 
+## Tester un objet créé à la main
+
+1. Onglet « Objets », « Nouvel objet » : type Appareil, nom « iPhone ».
+2. Sur sa page, « Ajouter un papier » (la facture, « À conserver ») : elle
+   est rattachée d'office.
+3. « Rattacher un papier existant » : choisir l'abonnement déjà enregistré.
+4. « Modifier l'objet » : changer le nom ou le type, ou le supprimer (ses
+   papiers restent).
+
 ## Tester la sauvegarde
 
 1. Ajouter deux ou trois papiers, puis toucher « ⋮ » en haut à droite et
