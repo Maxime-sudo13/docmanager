@@ -341,17 +341,28 @@ objets.
 - **« clio » et « Clio » sont le même objet** (majuscules, accents et espaces
   ignorés). Il s'affiche sous l'orthographe la plus fréquente, à égalité sous
   la première saisie.
-- **Une rangée de pastilles « objets »** sous celle des catégories (téléphone),
-  une rubrique « Objets » dans la barre latérale (ordinateur). Toucher un objet
-  ne montre que ses papiers ; le retoucher montre tout.
-- **La carte de l'objet**, au-dessus de ses papiers : nombre de papiers,
-  montants en tout (une échéance qui revient compte autant de fois qu'elle a
-  été traitée, plus l'échéance en cours) et prochaine échéance. Deux boutons :
-  « Renommer » (change tous ses papiers ; deux objets renommés pareil se
-  rejoignent) et « Ajouter » (objet déjà rempli).
-- Dans la liste, l'objet s'affiche avec une étiquette, sauf dans la vue de
-  l'objet où ce serait répété. La recherche trouve un papier par son objet.
-- Vider le champ retire le papier de l'objet ; un objet sans papier disparaît.
+- **Une page à part pour les objets** (retour de l'utilisateur, 13 novembre
+  2026 : la première version, avec des pastilles d'objets sous les
+  catégories, « n'était pas fluide »). Sur téléphone, deux onglets en haut :
+  « Papiers » et « Objets ». La page « Objets » montre une carte par objet
+  (nom, nombre de papiers, montants en tout, prochaine échéance) ; toucher une
+  carte ouvre la page de l'objet, avec un en-tête (« ‹ Tous les objets »,
+  nom, chiffres, « Renommer ») et tous ses papiers, rangés comme sur la page
+  des papiers. Le résumé, la recherche et les catégories ne s'affichent que
+  sur la page des papiers. Sur ordinateur, pas d'onglets : « Objets » et la
+  liste des objets sont dans la barre latérale.
+- **La page est dans l'adresse** (`#objets`, `#objet=clio`) : le bouton
+  Retour du téléphone ramène à la page précédente.
+- **Montants d'un objet** : chaque papier compte une fois ; une échéance qui
+  revient compte autant de fois qu'elle a été traitée, plus l'échéance en
+  cours.
+- **« Renommer »** change tous ses papiers (deux objets renommés pareil se
+  rejoignent). **« Ajouter un papier »** depuis la page d'un objet lui
+  rattache le nouveau papier.
+- Sur la page des papiers, l'objet s'affiche avec une étiquette ; la
+  recherche trouve un papier par son objet.
+- Vider le champ retire le papier de l'objet ; un objet sans papier disparaît
+  (retour à la page « Objets »).
 
 ## Ce qu'il reste pour la mise en ligne
 
@@ -416,8 +427,10 @@ objets.
   restauration (format toujours en version 1 : champs ajoutés seulement).
 - **Objets (étape 12)** : champ `thing` (texte, 60 caractères au plus, chaîne
   vide si aucun). Regroupement en mémoire dans `app.js` (`thingKey`,
-  `collectThings`) ; filtre `view.thing`. Sauvegardé et revérifié à la
-  restauration.
+  `collectThings`). Pages : `view.page` vaut `papers`, `things` ou `thing`
+  (`view.thing` = clé de l'objet), lue dans l'adresse par `readRoute()` et
+  changée par `goTo()` (historique du navigateur). Sauvegardé et revérifié à
+  la restauration.
 - **`icons/chevron.svg`** : la flèche de la liste « Revient » (une image, la
   règle de sécurité interdisant les images `data:`).
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la

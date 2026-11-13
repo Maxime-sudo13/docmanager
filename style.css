@@ -798,20 +798,175 @@ p {
   color: inherit;
 }
 
-/* Deuxième rangée de pastilles : les objets. */
-.thing-filters {
-  margin-top: 2px;
+/* Deux pages sur téléphone : « Papiers » et « Objets ». */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 14px;
 }
 
-/* Carte de l'objet choisi, au-dessus de ses papiers. */
+.tab {
+  min-height: 42px;
+  padding: 0 12px;
+  background: none;
+  border: 0;
+  border-radius: 11px;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(var(--shadow) / 0.12);
+  color: var(--ink);
+}
+
+.tab:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Page « Objets » : une carte par objet. */
+.things-grid {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thing-tile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 14px 16px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgb(var(--shadow) / 0.04);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.thing-tile:active {
+  background: var(--accent-soft);
+}
+
+.thing-tile:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.thing-tile > .thing-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: var(--accent-soft);
+  border-radius: 12px;
+  color: var(--accent);
+}
+
+.thing-tile > .thing-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.thing-tile-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.thing-tile-name {
+  overflow: hidden;
+  font-family: var(--font-title);
+  font-size: 1.1875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thing-tile-stats,
+.thing-tile-next {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thing-tile-next[data-level="soon"] {
+  color: var(--warn);
+  font-weight: 650;
+}
+
+.thing-tile-next[data-level="late"] {
+  color: var(--danger);
+  font-weight: 650;
+}
+
+.thing-tile-arrow {
+  color: var(--ink-soft);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.things-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.things-empty h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+}
+
+.things-empty p {
+  max-width: 26rem;
+  margin: 0;
+}
+
+.things-empty-icon {
+  color: var(--accent);
+}
+
+/* Page d'un objet : son en-tête, au-dessus de ses papiers. */
 .thing-card {
   display: grid;
   gap: 6px;
   margin-bottom: 18px;
-  padding: 18px 18px 16px;
+  padding: 4px 18px 16px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+}
+
+.thing-back {
+  justify-self: start;
+  margin: 0 -8px;
+}
+
+.thing-actions {
+  display: flex;
+  margin: 0 -8px -6px;
 }
 
 .thing-name {
@@ -827,10 +982,6 @@ p {
   margin: 0;
   color: var(--ink-soft);
   font-size: 0.9375rem;
-}
-
-.thing-card .actions {
-  margin-top: 8px;
 }
 
 .thing-rename {
@@ -1854,13 +2005,33 @@ button.choice {
     cursor: pointer;
   }
 
-  .side-title {
-    margin: 18px 12px 4px;
-    color: var(--ink-soft);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+  .side-things-all {
+    margin-top: 14px;
+  }
+
+  .side-things-all .thing-icon {
+    width: 9px;
+    justify-content: center;
+    color: var(--ink);
+  }
+
+  .side-things-all .thing-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .side-things .side-item {
+    min-height: 36px;
+    padding-left: 33px;
+    font-size: 0.875rem;
+  }
+
+  .tabs {
+    display: none;
+  }
+
+  .things-grid {
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   }
 
   .side-item[data-filter="all"] .dot {
