@@ -934,7 +934,7 @@
     button.setAttribute('aria-controls', controls);
     const icon = el('span', 'fold-icon');
     icon.setAttribute('aria-hidden', 'true');
-    button.append(label, el('span', 'group-count', String(count)), icon);
+    button.append(label + ' ', el('span', 'group-count', String(count)), icon);
     title.append(button);
     return title;
   }
