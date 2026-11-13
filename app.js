@@ -63,10 +63,12 @@
 
   // Types d'objets, avec leur dessin.
   const THING_KINDS = [
-    { id: 'vehicule', label: 'Véhicule', icon: ICON('<path d="M4 16.5V12l2-5h12l2 5v4.5M4 12h16"/><path d="M4 16.5h16v2H4z"/><circle cx="7.5" cy="14.5" r="0.6"/><circle cx="16.5" cy="14.5" r="0.6"/>') },
-    { id: 'logement', label: 'Logement', icon: CATEGORY_ICONS.logement },
-    { id: 'appareil', label: 'Appareil', icon: ICON('<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>') },
-    { id: 'autre', label: 'Autre', icon: THING_ICON },
+    { id: 'vehicule', label: 'Véhicule', plural: 'Véhicules', icon: ICON('<path d="M4 16.5V12l2-5h12l2 5v4.5M4 12h16"/><path d="M4 16.5h16v2H4z"/><circle cx="7.5" cy="14.5" r="0.6"/><circle cx="16.5" cy="14.5" r="0.6"/>') },
+    { id: 'logement', label: 'Logement', plural: 'Logements', icon: CATEGORY_ICONS.logement },
+    { id: 'appareil', label: 'Appareil', plural: 'Appareils', icon: ICON('<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>') },
+    { id: 'animal', label: 'Animal', plural: 'Animaux', icon: ICON('<circle cx="6.5" cy="11" r="1.8"/><circle cx="10" cy="6.8" r="1.8"/><circle cx="14" cy="6.8" r="1.8"/><circle cx="17.5" cy="11" r="1.8"/><path d="M12 12.5c-2.6 0-4.6 2.7-4.6 4.8 0 1.6 1.4 2.2 2.6 2.2.8 0 1.3-.4 2-.4s1.2.4 2 .4c1.2 0 2.6-.6 2.6-2.2 0-2.1-2-4.8-4.6-4.8z"/>') },
+    { id: 'personne', label: 'Personne', plural: 'Personnes', icon: ICON('<circle cx="12" cy="8" r="3.6"/><path d="M5 20c.6-3.6 3.4-5.6 7-5.6s6.4 2 7 5.6"/>') },
+    { id: 'autre', label: 'Autre', plural: 'Autres', icon: THING_ICON },
   ];
 
   function kindIcon(kind) {
@@ -813,27 +815,41 @@
 
     if (view.page === 'things') {
       els.thingsEmpty.hidden = things.length > 0;
+      // Une rubrique par type d'objet (deux voitures, deux chiens…), dans
+      // l'ordre des types ; chacune se replie.
+      const tile = (thing) => {
+        const item = el('li');
+        const button = el('button', 'thing-tile');
+        button.type = 'button';
+        button.dataset.thing = thing.key;
+        const stats = thingStats(thing);
+        const text = el('span', 'thing-tile-text');
+        text.append(el('span', 'thing-tile-name', thing.name), el('span', 'thing-tile-stats', stats.summary));
+        if (stats.next) {
+          const next = el('span', 'thing-tile-next', stats.next.text);
+          if (stats.next.level) next.dataset.level = stats.next.level;
+          text.append(next);
+        }
+        const kind = el('span', 'thing-icon');
+        kind.innerHTML = kindIcon(thing.kind);
+        button.append(kind, text, el('span', 'thing-tile-arrow', '›'));
+        item.append(button);
+        return item;
+      };
       els.thingsGrid.replaceChildren(
-        ...things.map((thing) => {
-          const item = el('li');
-          const button = el('button', 'thing-tile');
-          button.type = 'button';
-          button.dataset.thing = thing.key;
-          const stats = thingStats(thing);
-          const text = el('span', 'thing-tile-text');
-          text.append(el('span', 'thing-tile-name', thing.name), el('span', 'thing-tile-stats', stats.summary));
-          if (stats.next) {
-            const next = el('span', 'thing-tile-next', stats.next.text);
-            if (stats.next.level) next.dataset.level = stats.next.level;
-            text.append(next);
-          }
-          const kind = el('span', 'thing-icon');
-          kind.innerHTML = kindIcon(thing.kind);
-          button.append(kind, text, el('span', 'thing-tile-arrow', '›'));
-          item.append(button);
-          return item;
-        })
+        ...THING_KINDS.map((kind) => {
+          const members = things.filter((thing) => (THING_KINDS.some((k) => k.id === thing.kind) ? thing.kind : 'autre') === kind.id);
+          if (members.length === 0) return null;
+          const section = el('section', 'group things-group');
+          section.dataset.kind = kind.id;
+          const list = el('ul', 'things-grid');
+          list.id = 'things-' + kind.id;
+          list.append(...members.map(tile));
+          section.append(foldTitle('kind-' + kind.id, kind.plural, members.length, list.id), list);
+          return section;
+        }).filter(Boolean)
       );
+      applyFolds();
     }
     renderThingCard();
   }
@@ -872,6 +888,65 @@
     els.thingEmpty.hidden = thing.papers.length > 0;
     const stats = thingStats(thing);
     els.thingStats.textContent = stats.next ? stats.summary + ' · ' + stats.next.text.split(' · ')[0].toLowerCase() : stats.summary;
+  }
+
+  /* ---------- Groupes repliables ---------- */
+
+  // Chaque groupe (« À traiter », « Traités », une rubrique d'objets) se
+  // replie d'un toucher sur son titre. L'appareil s'en souvient, page par
+  // page. « Traités » est replié d'office sur la page des papiers : c'est la
+  // liste qui s'allonge sans fin.
+  const FOLD_KEY = 'mes-papiers.replie';
+  const FOLDED_BY_DEFAULT = ['papers:done'];
+  let folds = {};
+  try {
+    folds = JSON.parse(localStorage.getItem(FOLD_KEY) || '{}') || {};
+  } catch (error) {
+    folds = {};
+  }
+
+  function foldKey(group) {
+    return (group.startsWith('kind-') ? 'things' : view.page) + ':' + group;
+  }
+
+  function isFolded(group) {
+    // Pendant une recherche, tout est déplié : sinon un résultat resterait caché.
+    if (view.query.trim() && view.page === 'papers') return false;
+    const key = foldKey(group);
+    return key in folds ? folds[key] : FOLDED_BY_DEFAULT.includes(key);
+  }
+
+  function toggleFold(group) {
+    folds[foldKey(group)] = !isFolded(group);
+    try {
+      localStorage.setItem(FOLD_KEY, JSON.stringify(folds));
+    } catch (error) {
+      // Non gardé : ça vaut jusqu'à la fermeture.
+    }
+    applyFolds();
+  }
+
+  function foldTitle(group, label, count, controls) {
+    const title = el('h2', 'group-title');
+    const button = el('button', 'fold');
+    button.type = 'button';
+    button.dataset.fold = group;
+    button.setAttribute('aria-controls', controls);
+    const icon = el('span', 'fold-icon');
+    icon.setAttribute('aria-hidden', 'true');
+    button.append(label + ' ', el('span', 'group-count', String(count)), icon);
+    title.append(button);
+    return title;
+  }
+
+  function applyFolds() {
+    for (const button of document.querySelectorAll('.fold')) {
+      // Un titre masqué (un seul groupe) ne se replie pas : sa liste reste visible.
+      const folded = !button.closest('h2').hidden && isFolded(button.dataset.fold);
+      button.setAttribute('aria-expanded', String(!folded));
+      const list = document.getElementById(button.getAttribute('aria-controls'));
+      if (list) list.hidden = folded;
+    }
   }
 
   /* ---------- Pages : papiers, objets, un objet ---------- */
@@ -1156,6 +1231,7 @@
     els.doneList.replaceChildren(...done.map(renderPaper));
     els.noResult.hidden = total === 0 || visible.length > 0;
     renderPage();
+    applyFolds();
 
     // Les organismes déjà saisis sont proposés pendant la frappe.
     const names = [...new Set(papers.map((paper) => paper.organisation))].sort((a, b) =>
@@ -2743,6 +2819,11 @@
 
   // Liste : ouvrir un papier, ou le marquer traité.
   els.main.addEventListener('click', (event) => {
+    const fold = event.target.closest('.fold');
+    if (fold) {
+      toggleFold(fold.dataset.fold);
+      return;
+    }
     const row = event.target.closest('.paper');
     if (!row) return;
     const paper = papers.find((candidate) => candidate.id === row.dataset.id);

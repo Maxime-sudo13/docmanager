@@ -293,7 +293,7 @@ const Backup = (function () {
   const instant = (value) =>
     typeof value === 'string' && !Number.isNaN(Date.parse(value)) ? value : null;
   const day = (value) => (Reminders.parseDay(value) ? value : null);
-  const THING_KINDS = ['vehicule', 'logement', 'appareil', 'autre'];
+  const THING_KINDS = ['vehicule', 'logement', 'appareil', 'animal', 'personne', 'autre'];
 
   // Une sauvegarde vient de l'extérieur : on ne reprend que les champs
   // connus, et on vérifie chacun. Renvoie null si la fiche est inutilisable.
