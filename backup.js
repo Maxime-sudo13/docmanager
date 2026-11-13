@@ -307,6 +307,20 @@ const Backup = (function () {
     }
     const type = text(raw.type, 100);
     const done = raw.done === true;
+    // Montant en centimes ; échéance qui revient tous les 1, 3, 12 ou 24 mois.
+    const amount =
+      Number.isInteger(raw.amount) && raw.amount >= 0 && raw.amount <= 100000000 ? raw.amount : null;
+    const repeat = [1, 3, 12, 24].includes(raw.repeat) && day(raw.dueDate) ? raw.repeat : 0;
+    const repeatDay =
+      repeat > 0 && Number.isInteger(raw.repeatDay) && raw.repeatDay >= 1 && raw.repeatDay <= 31
+        ? raw.repeatDay
+        : null;
+    const history = Array.isArray(raw.history)
+      ? raw.history
+          .filter((entry) => entry && day(entry.due) && instant(entry.doneAt))
+          .slice(-24)
+          .map((entry) => ({ due: entry.due, doneAt: entry.doneAt }))
+      : [];
     return {
       id,
       category: categories.includes(raw.category) ? raw.category : 'autre',
@@ -318,6 +332,12 @@ const Backup = (function () {
       fileName: text(raw.fileName, 255),
       note: typeof raw.note === 'string' ? raw.note.trim().slice(0, 2000) : '',
       noFile,
+      amount,
+      repeat,
+      repeatDay,
+      autoPay: repeat > 0 && raw.autoPay === true,
+      history,
+      thing: text(raw.thing, 60).replace(/\s+/g, ' '),
       type: /^[\w.+-]+\/[\w.+-]+$/.test(type) ? type : '',
       createdAt: instant(raw.createdAt) || now,
       updatedAt: instant(raw.updatedAt) || now,

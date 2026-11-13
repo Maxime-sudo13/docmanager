@@ -23,6 +23,23 @@ papiers administratifs et être prévenu avant les échéances.
    catégorie, recherche par mot, bouton « traité ».
 4. **Être prévenu** : rappel 7 jours avant et la veille.
 
+## Évolution validée le 13 novembre 2026
+
+Après une réflexion sur un « assistant du quotidien » en plusieurs modules
+(abonnements, budget, véhicule, maison…), l'utilisateur a validé la
+direction proposée : ne pas empiler des modules, mais élargir le cœur
+existant. La plupart de ces besoins sont des **échéances** (une date, un
+montant, un document). Ajouts admis dans le périmètre, dans cet ordre :
+
+1. **Échéances qui reviennent et montants** (étape 11) : abonnements,
+   assurance, contrôle technique, entretien, avec un total par mois.
+2. **Les objets** (étape 12, plus tard) : rattacher des papiers à une voiture,
+   un logement, un appareil, pour en avoir l'historique.
+3. **Repérer seul les dates dans une note** (étape 10, plus tard), sans IA.
+
+Les contraintes ne changent pas. Restent hors périmètre : courses, liste de
+souhaits, budget complet, connexion bancaire, IA.
+
 ## Hors périmètre
 
 Pas de compte, pas de synchronisation, pas de partage, pas d'IA, pas d'envoi
@@ -65,6 +82,8 @@ la suivante.
 | 8. Plusieurs pages, apparence, rappel de sauvegarde | Livrée |
 | 9. Notes : écrire ou dicter, avec ou sans document | Livrée, en attente de test |
 | 10. Repérer seul dates et actions dans une note | À faire, plus tard (idée 3 de l'analyse du 13 novembre) |
+| 11. Échéances qui reviennent et montants | Livrée, en attente de test |
+| 12. Objets (voiture, logement, appareils) | Livrée, en attente de test |
 
 ## Retours de l'utilisateur
 
@@ -271,12 +290,68 @@ conversation en choses à faire », réduite à ce qui tient sans IA ni serveur.
   Catégorie, organisme et date limite comme pour un papier, donc les mêmes
   rappels.
 - **Tous les papiers ont un champ « Note »** facultatif, replié derrière
-  « + Ajouter une note » quand il y a un document (sinon « Ajouter » ne
+  « + Note » (« + Ajouter une note » jusqu'à l'étape 11) quand il y a un document (sinon « Ajouter » ne
   tient plus dans l'écran d'un téléphone), déplié s'il est déjà rempli.
 - La première ligne de la note s'affiche dans la liste ; la recherche fouille
   la note.
 - **Plus tard (étape 10)** : repérer seul, sur le téléphone, les dates et les
   verbes d'action dans la note pour préremplir la date limite.
+
+Étape 11 (13 novembre 2026, « fais au mieux ») : échéances qui reviennent et
+montants.
+
+- **Deux champs facultatifs, « Montant » et « Revient »** (non, chaque mois,
+  tous les 3 mois, chaque année, tous les 2 ans), côte à côte et repliés
+  derrière « + Montant ou abonnement ». « + Note » est sur la même ligne,
+  juste au-dessus du bouton : sans cela « Ajouter » sortait de l'écran d'un
+  téléphone (vérifié à 390 × 844). Une note ajoutée à un papier avec document
+  s'ouvre donc en bas de la fiche.
+- **Une échéance qui revient demande une date** : c'est la prochaine.
+- **Traiter une échéance qui revient la repousse** à la suivante au lieu de la
+  ranger dans « Traités » : une seule fiche par abonnement, toujours à jour.
+  Le message dit la nouvelle date et propose « Annuler ». La fiche garde la
+  liste des échéances traitées (24 au plus) : « Déjà traitée 3 fois, la
+  dernière le… ». Le bouton de la fiche dit « Traité · prochaine le 25 déc. ».
+- **Le jour d'origine est gardé** : une échéance du 31 passe au 28 février,
+  puis revient au 31 mars.
+- **« Prélevé automatiquement »** (case proposée dès qu'une échéance
+  revient) : rien à faire, donc ni rappel, ni rond « traité », ni place dans
+  les trois cases ; la date passe seule à l'échéance suivante une fois
+  dépassée. Ces papiers ont leur propre groupe, « Prélevés automatiquement »,
+  entre « À traiter » et « Traités ». Dans la fiche, le bouton devient
+  « Arrêter : ne revient plus » (le papier rejoint les traités).
+- **Total sous les trois cases** : « Dépenses régulières · 1 263,99 € par
+  mois », chaque montant ramené au mois (une assurance à 600 € par an compte
+  pour 50 €). Toucher ce total ne montre que les échéances qui reviennent ;
+  le toucher à nouveau montre tout. Les montants des papiers qui ne reviennent
+  pas s'affichent dans la liste mais ne comptent pas dans ce total.
+- **Montant saisi librement** : « 45,90 », « 45.9 » ou « 1 200 € » sont
+  compris ; sinon un message demande des chiffres. La recherche trouve un
+  papier par son montant (« 600 ») ou par « chaque mois ».
+
+Étape 12 (13 novembre 2026, « continue, on testera tout après ») : les
+objets.
+
+- **Un objet est un nom libre** (« Clio », « Appartement », « Lave-linge »)
+  porté par le papier, dans un champ « Objet concerné » replié derrière
+  « + Objet », sur la ligne de « + Note » et « + Montant ou abonnement ».
+  Les noms déjà saisis sont proposés pendant la frappe. Pas de liste d'objets
+  à gérer à part, pas de type d'objet : c'est le plus simple à saisir, et ça
+  suffit pour regrouper.
+- **« clio » et « Clio » sont le même objet** (majuscules, accents et espaces
+  ignorés). Il s'affiche sous l'orthographe la plus fréquente, à égalité sous
+  la première saisie.
+- **Une rangée de pastilles « objets »** sous celle des catégories (téléphone),
+  une rubrique « Objets » dans la barre latérale (ordinateur). Toucher un objet
+  ne montre que ses papiers ; le retoucher montre tout.
+- **La carte de l'objet**, au-dessus de ses papiers : nombre de papiers,
+  montants en tout (une échéance qui revient compte autant de fois qu'elle a
+  été traitée, plus l'échéance en cours) et prochaine échéance. Deux boutons :
+  « Renommer » (change tous ses papiers ; deux objets renommés pareil se
+  rejoignent) et « Ajouter » (objet déjà rempli).
+- Dans la liste, l'objet s'affiche avec une étiquette, sauf dans la vue de
+  l'objet où ce serait répété. La recherche trouve un papier par son objet.
+- Vider le champ retire le papier de l'objet ; un objet sans papier disparaît.
 
 ## Ce qu'il reste pour la mise en ligne
 
@@ -329,6 +404,22 @@ conversation en choses à faire », réduite à ce qui tient sans IA ni serveur.
   fiches ; `noFile: true` pour un papier sans document, qui n'a alors aucune
   entrée dans la table `files` (`PaperStore.add(paper, null)`), `size` 0 et
   pas de pages. Dans la sauvegarde, une telle fiche a `file: null`.
+- **Échéances qui reviennent (étape 11)** : champs `amount` (centimes,
+  entier, ou `null`), `repeat` (0, 1, 3, 12 ou 24 mois), `repeatDay` (jour du
+  mois d'origine, 1 à 31, ou `null`), `autoPay` (booléen) et `history`
+  (`[{ due, doneAt }]`, 24 au plus). Pas de montée de version de la base : les
+  fiches anciennes n'ont simplement pas ces champs. Le calcul des dates est
+  dans `reminders.js` (`nextDue`, `currentDue`, `needsAction`) ; `pending` et
+  `upcoming` ignorent les prélèvements automatiques. Les prélèvements dépassés
+  sont avancés à chaque `refresh()` d'`app.js`, y compris au retour sur
+  l'application. La sauvegarde garde ces champs et les revérifie à la
+  restauration (format toujours en version 1 : champs ajoutés seulement).
+- **Objets (étape 12)** : champ `thing` (texte, 60 caractères au plus, chaîne
+  vide si aucun). Regroupement en mémoire dans `app.js` (`thingKey`,
+  `collectThings`) ; filtre `view.thing`. Sauvegardé et revérifié à la
+  restauration.
+- **`icons/chevron.svg`** : la flèche de la liste « Revient » (une image, la
+  règle de sécurité interdisant les images `data:`).
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la
   règle de sécurité autorise `font-src 'self' file:`.
 - **Volet de droite** : sur grand écran, la fiche d'un papier est le même
@@ -359,7 +450,8 @@ conversation en choses à faire », réduite à ce qui tient sans IA ni serveur.
   `getFile(id)`, `requestPersistence()`. `app.js` ne touche jamais à IndexedDB.
 - **Base IndexedDB `mes-papiers`, version 1, deux tables** indexées par `id` :
   - `papers` : la fiche `{ id, category, organisation, dueDate, done, doneAt,
-    reminded, fileName, type, size, createdAt, updatedAt, thumbnail }` ;
+    reminded, fileName, type, size, createdAt, updatedAt, thumbnail }`, plus
+    `note`, `noFile`, `extraPages` et les champs de l'étape 11 ;
   - `files` : `{ id, type, data }`, le fichier lui-même, rangé à part pour que
     l'affichage de la liste ne charge pas toutes les photos en mémoire.
 

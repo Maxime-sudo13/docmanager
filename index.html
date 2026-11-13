@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-13e">
+  <link rel="stylesheet" href="style.css?v=2026-11-13g">
 </head>
 <body>
 
@@ -41,6 +41,8 @@
   <aside class="sidebar" aria-label="Navigation">
     <p class="sidebar-brand">Mes papiers</p>
     <nav id="side-nav" class="side-nav" aria-label="Catégories"></nav>
+    <p id="side-things-title" class="side-title" hidden>Objets</p>
+    <nav id="side-things" class="side-nav" aria-label="Objets" hidden></nav>
     <button id="side-add" class="btn btn-primary side-add" type="button"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>Ajouter un papier</button>
     <div class="side-bottom">
       <button id="side-bell" class="side-link" type="button"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Rappels<span id="side-bell-dot" class="side-dot" hidden></span></button>
@@ -87,6 +89,11 @@
       <div class="tile tile-late"><span id="sum-late" class="tile-n">0</span><span class="tile-l">en retard</span></div>
       <div class="tile tile-week"><span id="sum-week" class="tile-n">0</span><span class="tile-l">cette semaine</span></div>
       <div class="tile tile-todo"><span id="sum-todo" class="tile-n">0</span><span class="tile-l">à traiter</span></div>
+      <!-- Total des échéances qui reviennent, ramené au mois. Touché : ne montre qu'elles. -->
+      <button id="sum-regular" class="tile-regular" type="button" aria-pressed="false" hidden>
+        <span class="regular-label">Dépenses régulières</span>
+        <span id="sum-regular-total" class="regular-total"></span>
+      </button>
     </div>
 
     <!-- Rappel de sauvegarde : les papiers n'existent que sur cet appareil. -->
@@ -121,6 +128,7 @@
         </button>
       </div>
       <div id="filters" class="filters" role="group" aria-label="Filtrer par catégorie" hidden></div>
+      <div id="thing-filters" class="filters thing-filters" role="group" aria-label="Filtrer par objet" hidden></div>
     </div>
 
     <div id="no-result" class="no-result" hidden>
@@ -128,10 +136,34 @@
       <button id="reset-view" class="btn btn-secondary" type="button">Tout afficher</button>
     </div>
 
+    <!-- Un objet (voiture, logement, appareil) : ses papiers, ses montants. -->
+    <section id="thing-card" class="thing-card" aria-labelledby="thing-name" hidden>
+      <h2 id="thing-name" class="thing-name"></h2>
+      <p id="thing-stats" class="thing-stats"></p>
+      <form id="thing-rename" class="thing-rename" novalidate hidden>
+        <label for="thing-rename-input" class="visually-hidden">Nouveau nom de l'objet</label>
+        <input id="thing-rename-input" type="text" maxlength="60" autocomplete="off" enterkeyhint="done">
+        <div class="actions">
+          <button id="thing-rename-cancel" class="btn btn-secondary" type="button">Annuler</button>
+          <button class="btn btn-primary" type="submit">Renommer</button>
+        </div>
+      </form>
+      <div id="thing-actions" class="actions">
+        <button id="thing-rename-button" class="btn btn-secondary" type="button">Renommer</button>
+        <button id="thing-add" class="btn btn-primary" type="button" aria-label="Ajouter un papier à cet objet">Ajouter</button>
+      </div>
+    </section>
+
     <!-- Les papiers à traiter d'abord, par échéance la plus proche. -->
     <section id="todo-section" class="group" aria-labelledby="todo-title" hidden>
       <h2 id="todo-title" class="group-title">À traiter <span id="todo-count" class="group-count"></span></h2>
       <ul id="todo-list" class="paper-list"></ul>
+    </section>
+
+    <!-- Prélèvements automatiques : rien à faire, la date avance seule. -->
+    <section id="auto-section" class="group" aria-labelledby="auto-title" hidden>
+      <h2 id="auto-title" class="group-title">Prélevés automatiquement <span id="auto-count" class="group-count"></span></h2>
+      <ul id="auto-list" class="paper-list"></ul>
     </section>
 
     <section id="done-section" class="group" aria-labelledby="done-title" hidden>
@@ -224,7 +256,6 @@
           <p id="done-status" class="done-status" hidden></p>
         </div>
 
-        <button id="note-toggle" class="link-button note-toggle" type="button" aria-controls="note-field" aria-expanded="false">+ Ajouter une note</button>
         <div id="note-field" class="field">
           <label for="note">Note <span id="note-optional" class="optional">facultative</span></label>
           <textarea id="note" name="note" rows="3" maxlength="2000"
@@ -254,7 +285,53 @@
           <label for="due-date">Date limite <span class="optional">facultative</span></label>
           <input id="due-date" name="dueDate" type="date" aria-describedby="due-date-error">
           <p id="due-date-error" class="field-error" hidden>Compléter la date ou la laisser vide.</p>
+          <p id="due-required-error" class="field-error" hidden>Pour une échéance qui revient, indiquer la prochaine date.</p>
           <p id="reminder-row" class="hint" hidden>Rappels 7 jours avant et la veille.</p>
+        </div>
+
+        <!-- Le facultatif, replié sur une ligne pour que « Ajouter » reste visible
+             sur un téléphone : la note (pour un papier avec document) et le
+             montant ou l'échéance qui revient (abonnement, assurance…). -->
+        <div id="more-row" class="more-row">
+          <button id="note-toggle" class="link-button" type="button" aria-controls="note-field" aria-expanded="false">+ Note</button>
+          <button id="money-toggle" class="link-button" type="button" aria-controls="money-block" aria-expanded="false">+ Montant ou abonnement</button>
+          <button id="thing-toggle" class="link-button" type="button" aria-controls="thing-field" aria-expanded="false">+ Objet</button>
+        </div>
+        <div id="thing-field" class="field" hidden>
+          <label for="thing">Objet concerné <span class="optional">facultatif</span></label>
+          <input id="thing" name="thing" type="text" list="thing-list" maxlength="60"
+                 autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done"
+                 placeholder="Ex. : Clio, appartement, lave-linge" aria-describedby="thing-hint">
+          <datalist id="thing-list"></datalist>
+          <p id="thing-hint" class="hint">Pour retrouver tous les papiers d'une voiture, d'un logement ou d'un appareil.</p>
+        </div>
+        <div id="money-block" class="money-block" hidden>
+        <div class="field-row">
+          <div class="field">
+            <label for="amount">Montant <span class="optional">facultatif</span></label>
+            <div class="amount-input">
+              <input id="amount" name="amount" type="text" inputmode="decimal" maxlength="12"
+                     autocomplete="off" placeholder="0,00" aria-describedby="amount-error">
+              <span class="amount-unit" aria-hidden="true">€</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="repeat">Revient</label>
+            <select id="repeat" name="repeat">
+              <option value="0">Non</option>
+              <option value="1">Chaque mois</option>
+              <option value="3">Tous les 3 mois</option>
+              <option value="12">Chaque année</option>
+              <option value="24">Tous les 2 ans</option>
+            </select>
+          </div>
+        </div>
+        <p id="amount-error" class="field-error amount-error" hidden>Écrire le montant en chiffres, par exemple 45,90.</p>
+        <label id="autopay-row" class="check-row" hidden>
+          <input id="autopay" name="autopay" type="checkbox">
+          <span>Prélevé automatiquement<span class="hint">Pas de rappel : la date avance seule.</span></span>
+        </label>
+        <p id="repeat-history" class="hint repeat-history" hidden></p>
         </div>
 
         <button id="save-button" class="btn btn-primary" type="submit">Ajouter</button>
@@ -370,9 +447,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-13e"></script>
-  <script src="reminders.js?v=2026-11-13e"></script>
-  <script src="backup.js?v=2026-11-13e"></script>
-  <script src="app.js?v=2026-11-13e"></script>
+  <script src="store.js?v=2026-11-13g"></script>
+  <script src="reminders.js?v=2026-11-13g"></script>
+  <script src="backup.js?v=2026-11-13g"></script>
+  <script src="app.js?v=2026-11-13g"></script>
 </body>
 </html>

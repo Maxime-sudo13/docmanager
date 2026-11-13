@@ -759,6 +759,164 @@ p {
   font-weight: 650;
 }
 
+/* Montant et rythme d'une échéance qui revient. */
+.paper-amount {
+  color: var(--ink);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.paper-repeat {
+  white-space: nowrap;
+}
+
+.paper-repeat::before {
+  content: "↻ ";
+}
+
+/* L'objet d'un papier (voiture, logement, appareil), dans la liste. */
+.paper-thing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.paper-thing svg,
+.thing-icon svg {
+  display: block;
+  flex: none;
+}
+
+.thing-icon {
+  display: inline-flex;
+  color: var(--ink-soft);
+}
+
+.filter[aria-pressed="true"] .thing-icon {
+  color: inherit;
+}
+
+/* Deuxième rangée de pastilles : les objets. */
+.thing-filters {
+  margin-top: 2px;
+}
+
+/* Carte de l'objet choisi, au-dessus de ses papiers. */
+.thing-card {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 18px 18px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.thing-name {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.thing-stats {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+.thing-card .actions {
+  margin-top: 8px;
+}
+
+.thing-rename {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.thing-rename input {
+  display: block;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit;
+}
+
+.thing-rename input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Un prélèvement automatique n'a pas de rond « traité ». */
+.paper > .paper-open:only-child {
+  grid-column: 1 / -1;
+}
+
+/* Sous les trois cases : le total des dépenses régulières, par mois. */
+.tile-regular {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--accent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tile-regular[hidden] {
+  display: none;
+}
+
+.regular-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.regular-unit {
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.regular-label::before {
+  content: "↻ ";
+}
+
+.regular-total {
+  font-family: var(--font-title);
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+}
+
+.tile-regular[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.tile-regular:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ---------- Boutons ---------- */
 
 .btn {
@@ -1134,11 +1292,6 @@ p {
   box-shadow: 0 0 0 1px var(--danger);
 }
 
-/* « + Ajouter une note » : discret, aligné à gauche, sous les pages. */
-.note-toggle {
-  justify-self: start;
-  margin: -10px -8px;
-}
 
 /* Bouton « Écrire ou dicter une note » : même allure que les deux autres choix. */
 button.choice {
@@ -1203,6 +1356,110 @@ button.choice {
 .field-error {
   color: var(--danger);
   font-size: 0.875rem;
+}
+
+/* « + Note » et « + Montant ou abonnement », sur une ligne. */
+.more-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  margin: -10px -8px;
+}
+
+.more-row[hidden],
+.more-row .link-button[hidden] {
+  display: none;
+}
+
+.money-block {
+  display: grid;
+  gap: 18px;
+}
+
+.money-block[hidden] {
+  display: none;
+}
+
+/* Montant et « Revient » côte à côte, pour que la fiche ne s'allonge pas trop. */
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 12px;
+}
+
+.amount-input {
+  position: relative;
+}
+
+.field .amount-input input[type="text"] {
+  padding-right: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-unit {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.field select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 0 36px 0 14px;
+  background: var(--surface) url("icons/chevron.svg") no-repeat right 12px center / 16px 16px;
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Les deux messages d'erreur de la rangée passent dessous, sur toute la largeur. */
+.amount-error {
+  margin-top: -10px;
+}
+
+/* Case « Prélevé automatiquement ». */
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: -6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.check-row[hidden] {
+  display: none;
+}
+
+.check-row input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.check-row .hint {
+  display: block;
+  font-weight: 400;
+}
+
+.repeat-history {
+  margin-top: -10px;
 }
 
 /* Trois colonnes, ou deux quand l'écran est trop étroit pour les libellés. */
@@ -1595,6 +1852,15 @@ button.choice {
     font-size: 0.9375rem;
     text-align: left;
     cursor: pointer;
+  }
+
+  .side-title {
+    margin: 18px 12px 4px;
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .side-item[data-filter="all"] .dot {
