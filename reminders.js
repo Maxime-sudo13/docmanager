@@ -69,6 +69,44 @@ const Reminders = (function () {
     return date ? Math.round((date - today()) / 86400000) : null;
   }
 
+  /* ---------- Échéances qui reviennent ---------- */
+
+  // Une échéance peut revenir tous les `repeat` mois (1, 3, 12 ou 24).
+  // `repeatDay` garde le jour du mois d'origine : une échéance du 31 janvier
+  // passe au 28 février, puis revient au 31 mars, au lieu de glisser au 28.
+
+  function toDay(date) {
+    const pad = (number) => String(number).padStart(2, '0');
+    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+  }
+
+  // L'échéance suivante, `AAAA-MM-JJ`, ou null si rien ne revient.
+  function nextDue(dueDate, repeat, repeatDay) {
+    const date = parseDay(dueDate);
+    if (!date || !(repeat > 0)) return null;
+    const anchor = repeatDay >= 1 && repeatDay <= 31 ? repeatDay : date.getDate();
+    const month = date.getMonth() + repeat;
+    const lastDay = new Date(date.getFullYear(), month + 1, 0).getDate();
+    return toDay(new Date(date.getFullYear(), month, Math.min(anchor, lastDay)));
+  }
+
+  // Pour un prélèvement automatique : la première échéance à partir
+  // d'aujourd'hui. Renvoie la date d'origine si elle n'est pas passée.
+  function currentDue(dueDate, repeat, repeatDay) {
+    let due = dueDate;
+    for (let guard = 0; guard < 1200 && daysUntil(due) < 0; guard++) {
+      const next = nextDue(due, repeat, repeatDay);
+      if (!next) break;
+      due = next;
+    }
+    return due;
+  }
+
+  // Un papier pour lequel on attend un geste : ni traité, ni prélevé tout seul.
+  function needsAction(paper) {
+    return !paper.done && !(paper.autoPay && paper.repeat > 0);
+  }
+
   /* ---------- Rappels dus ---------- */
 
   const byName = (a, b) => a.paper.organisation.localeCompare(b.paper.organisation, 'fr');
@@ -78,7 +116,7 @@ const Reminders = (function () {
   function pending(papers) {
     const result = [];
     for (const paper of papers) {
-      if (paper.done) continue;
+      if (!needsAction(paper)) continue;
       const days = daysUntil(paper.dueDate);
       if (days === null || days < 0 || days > WEEK_DAYS) continue;
       const reminded = paper.reminded || {};
@@ -114,7 +152,7 @@ const Reminders = (function () {
     const start = today();
     const result = [];
     for (const paper of papers) {
-      if (paper.done) continue;
+      if (!needsAction(paper)) continue;
       const due = parseDay(paper.dueDate);
       if (!due) continue;
       const reminded = paper.reminded || {};
@@ -199,6 +237,10 @@ const Reminders = (function () {
     simulateToday,
     formatDay,
     daysUntil,
+    toDay,
+    nextDue,
+    currentDue,
+    needsAction,
     pending,
     armed,
     upcoming,

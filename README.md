@@ -53,6 +53,18 @@ comme si nous étions ce jour-là, et l'indique par un bandeau.
 5. Faire de même avec la veille, `http://localhost:8000/?date=2026-11-30` :
    la notification « Demain » apparaît.
 
+## Tester les échéances qui reviennent
+
+1. Ajouter un papier, toucher « + Montant ou abonnement », saisir un montant
+   (« 13,49 ») et choisir « Chaque mois » avec une date limite.
+2. Le total « Dépenses régulières » apparaît sous les trois cases ; le toucher
+   ne montre que les échéances qui reviennent.
+3. Toucher le rond « traité » : le papier reste à traiter, avec la date du
+   mois suivant (« Annuler » la remet).
+4. Cocher « Prélevé automatiquement » : le papier passe dans « Prélevés
+   automatiquement », sans rappel. Avec `?date=AAAA-MM-JJ` après sa date, on
+   le voit avancer seul.
+
 ## Tester la sauvegarde
 
 1. Ajouter deux ou trois papiers, puis toucher « ⋮ » en haut à droite et

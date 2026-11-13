@@ -1,7 +1,8 @@
 /*
  * Mes papiers — interface.
- * Étape 7 : nouveau design « Papeterie ». Sur ordinateur, trois volets : les
- * catégories à gauche, la liste au milieu, la fiche du papier à droite.
+ * Design « Papeterie ». Sur ordinateur, trois volets : les catégories à
+ * gauche, la liste au milieu, la fiche du papier à droite. Une échéance peut
+ * revenir (abonnement, assurance…) et porter un montant.
  * Les données sont enregistrées sur l'appareil (voir store.js).
  */
 (function () {
@@ -19,6 +20,11 @@
   const SNOOZE_DAYS = 7;
   const BACKUP_MAX_AGE = 30 * 24 * 60 * 60 * 1000;      // au-delà, une sauvegarde est conseillée
   const BACKUP_MIN_PAPERS = 3;                          // en dessous, pas la peine d'insister
+  const HISTORY_MAX = 24;                               // échéances traitées gardées en mémoire
+  const AMOUNT_MAX = 100000000;                         // un million d'euros, en centimes
+
+  // Échéances qui reviennent : nombre de mois entre deux échéances.
+  const REPEATS = { 1: 'Chaque mois', 3: 'Tous les 3 mois', 12: 'Chaque année', 24: 'Tous les 2 ans' };
 
   // Catégories fixes. L'identifiant est ce qui est enregistré.
   const CATEGORIES = [
@@ -58,6 +64,22 @@
     sumLate: $('sum-late'),
     sumWeek: $('sum-week'),
     sumTodo: $('sum-todo'),
+    sumRegular: $('sum-regular'),
+    sumRegularTotal: $('sum-regular-total'),
+    autoSection: $('auto-section'),
+    autoCount: $('auto-count'),
+    autoList: $('auto-list'),
+    amount: $('amount'),
+    amountError: $('amount-error'),
+    repeat: $('repeat'),
+    autopayRow: $('autopay-row'),
+    autopay: $('autopay'),
+    repeatHistory: $('repeat-history'),
+    moneyToggle: $('money-toggle'),
+    moneyBlock: $('money-block'),
+    moreRow: $('more-row'),
+    categoryField: $('category-chips').closest('fieldset'),
+    dueRequiredError: $('due-required-error'),
     sideNav: $('side-nav'),
     sideAdd: $('side-add'),
     sideBell: $('side-bell'),
@@ -150,7 +172,8 @@
   };
 
   let papers = [];                    // toutes les fiches
-  const view = { query: '', category: 'all' }; // recherche et filtre en cours
+  // Recherche et filtre en cours ; `regular` : seulement les échéances qui reviennent.
+  const view = { query: '', category: 'all', regular: false };
   // Feuille ouverte : { mode: 'add', file, fileUrl } pour un nouveau papier,
   // { mode: 'edit', paper, fileUrl } pour un papier existant, sinon null.
   let sheet = null;
@@ -179,6 +202,36 @@
     month: new Intl.DateTimeFormat('fr-FR', { month: 'short' }),
   };
 
+  const euros = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+
+  // Montants : enregistrés en centimes (nombres entiers, sans erreur d'arrondi).
+  function formatAmount(cents) {
+    return euros.format(cents / 100);
+  }
+
+  // « 45,90 », « 45.9 », « 1 200 € » → centimes. Vide → null. Illégible → NaN.
+  function parseAmount(text) {
+    const clean = String(text).replace(/[\s\u00a0\u202f€]/g, '').replace(',', '.');
+    if (clean === '') return null;
+    if (!/^\d+(\.\d{1,2})?$/.test(clean)) return NaN;
+    const cents = Math.round(Number(clean) * 100);
+    return cents <= AMOUNT_MAX ? cents : NaN;
+  }
+
+  // Pour remplir le champ : « 45,90 », ou « 45 » pour un compte rond.
+  function amountForInput(cents) {
+    if (typeof cents !== 'number') return '';
+    return (cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2)).replace('.', ',');
+  }
+
+  function isRegular(paper) {
+    return paper.repeat > 0 && Boolean(paper.dueDate);
+  }
+
+  function isAutoPaid(paper) {
+    return !paper.done && isRegular(paper) && Boolean(paper.autoPay);
+  }
+
   function formatSize(bytes) {
     const number = (value, digits) =>
       value.toLocaleString('fr-FR', { maximumFractionDigits: digits });
@@ -203,6 +256,7 @@
     if (!date) return null;
     const day = formatDueDate(date);
     if (paper.done) return { text: 'Date limite : ' + day, level: '' };
+    if (isAutoPaid(paper)) return { text: 'Prochain prélèvement : ' + day, level: '' };
     const days = Reminders.daysUntil(paper.dueDate);
     if (days < 0) return { text: 'En retard · ' + day, level: 'late' };
     if (days === 0) return { text: "Aujourd'hui", level: 'soon' };
@@ -261,12 +315,16 @@
         paper.fileName,
         paper.note || '',
         date ? Reminders.formatDay(formats.long, date) : '',
+        typeof paper.amount === 'number' ? formatAmount(paper.amount) + ' ' + amountForInput(paper.amount) : '',
+        isRegular(paper) ? REPEATS[paper.repeat] || '' : '',
+        isAutoPaid(paper) ? 'prélèvement automatique' : '',
       ].join(' ')
     );
   }
 
   function matchesView(paper) {
     if (view.category !== 'all' && paper.category !== view.category) return false;
+    if (view.regular && !isRegular(paper)) return false;
     const words = normalize(view.query).split(/\s+/).filter(Boolean);
     const text = searchTexts.get(paper.id) || '';
     return words.every((word) => text.includes(word));
@@ -415,6 +473,11 @@
       if (due.level) label.dataset.level = due.level;
       meta.append(label);
     }
+    if (typeof paper.amount === 'number') meta.append(el('span', 'paper-amount', formatAmount(paper.amount)));
+    if (isRegular(paper) && !paper.done) {
+      const label = (REPEATS[paper.repeat] || '').toLowerCase();
+      meta.append(el('span', 'paper-repeat', isAutoPaid(paper) ? 'prélevé ' + label : label));
+    }
     const pageCount = 1 + (paper.extraPages || []).length;
     if (pageCount > 1) meta.append(el('span', 'paper-pages', pageCount + ' pages'));
     const noteLine = (paper.note || '').split('\n').find((line) => line.trim()) || '';
@@ -428,13 +491,16 @@
     done.type = 'button';
     done.setAttribute('aria-pressed', String(Boolean(paper.done)));
     const action = paper.done ? 'Remettre à traiter' : 'Marquer comme traité';
+    if (isRegular(paper) && !paper.done) done.classList.add('is-regular');
     done.setAttribute('aria-label', action + ' : ' + paper.organisation);
     done.title = action;
     const check = el('span', 'check');
     check.innerHTML = CHECK_ICON;
     done.append(check);
 
-    item.append(open, done);
+    // Un prélèvement automatique n'attend aucun geste : pas de rond « traité ».
+    if (isAutoPaid(paper)) item.append(open);
+    else item.append(open, done);
     return item;
   }
 
@@ -470,7 +536,7 @@
       );
     }
     for (const button of els.filters.children) {
-      button.setAttribute('aria-pressed', String(button.dataset.filter === view.category));
+      button.setAttribute('aria-pressed', String(button.dataset.filter === view.category && !view.regular));
     }
     renderSideNav(used);
   }
@@ -482,7 +548,7 @@
       button.type = 'button';
       button.dataset.filter = id;
       if (id !== 'all') button.dataset.category = id;
-      button.setAttribute('aria-pressed', String(view.category === id));
+      button.setAttribute('aria-pressed', String(view.category === id && !view.regular));
       button.append(el('span', 'dot'), el('span', 'side-label', label), el('span', 'side-count', String(count)));
       return button;
     };
@@ -493,7 +559,9 @@
       )
     );
     const current = CATEGORIES.find((category) => category.id === view.category);
-    els.viewTitle.textContent = current ? current.label : 'Tous les papiers';
+    els.viewTitle.textContent = view.regular
+      ? 'Dépenses régulières'
+      : current ? current.label : 'Tous les papiers';
   }
 
   // En haut de l'écran : en retard, dans les 7 jours, et en tout à traiter.
@@ -501,7 +569,7 @@
     let late = 0;
     let week = 0;
     for (const paper of papers) {
-      if (paper.done) continue;
+      if (!Reminders.needsAction(paper)) continue;
       const days = Reminders.daysUntil(paper.dueDate);
       if (days === null) continue;
       if (days < 0) late++;
@@ -513,13 +581,38 @@
     els.sumTodo.textContent = pending;
     els.summary.classList.toggle('has-late', late > 0);
     els.summary.classList.toggle('has-week', week > 0);
+    renderRegularTotal();
     const today = formats.today.format(Reminders.today());
     els.today.textContent = today.charAt(0).toUpperCase() + today.slice(1);
   }
 
+  // Sous les trois cases : ce que coûtent par mois les échéances qui
+  // reviennent (une assurance à 600 € par an compte pour 50 € par mois).
+  function renderRegularTotal() {
+    const regular = papers.filter((paper) => !paper.done && isRegular(paper));
+    if (regular.length === 0 && view.regular) view.regular = false;
+    els.sumRegular.hidden = regular.length === 0;
+    const perMonth = regular.reduce(
+      (sum, paper) => sum + (typeof paper.amount === 'number' ? paper.amount / paper.repeat : 0),
+      0
+    );
+    if (perMonth > 0) {
+      els.sumRegularTotal.replaceChildren(
+        formatAmount(Math.round(perMonth)),
+        el('span', 'regular-unit', ' par mois')
+      );
+    } else {
+      els.sumRegularTotal.textContent = regular.length + (regular.length > 1 ? ' échéances' : ' échéance');
+    }
+    els.sumRegular.title = perMonth > 0
+      ? 'Soit ' + formatAmount(Math.round(perMonth * 12)) + ' par an. Toucher pour les afficher.'
+      : 'Toucher pour les afficher.';
+    els.sumRegular.setAttribute('aria-pressed', String(view.regular));
+  }
+
   function render() {
     const total = papers.length;
-    const pending = papers.filter((paper) => !paper.done).length;
+    const pending = papers.filter(Reminders.needsAction).length;
 
     els.empty.hidden = total > 0;
     els.toolbar.hidden = total === 0;
@@ -532,16 +625,20 @@
     renderMenuDot();
 
     const visible = papers.filter(matchesView);
-    const todo = visible.filter((paper) => !paper.done).sort(compareTodo);
+    const todo = visible.filter(Reminders.needsAction).sort(compareTodo);
+    const auto = visible.filter(isAutoPaid).sort(compareTodo);
     const done = visible.filter((paper) => paper.done).sort(compareDone);
 
     els.todoSection.hidden = todo.length === 0;
+    els.autoSection.hidden = auto.length === 0;
     els.doneSection.hidden = done.length === 0;
-    // Tant qu'aucun papier n'est traité, l'intertitre « À traiter » est inutile.
+    // S'il n'y a que des papiers à traiter, l'intertitre « À traiter » est inutile.
     els.todoTitle.hidden = pending === total;
     els.todoCount.textContent = todo.length;
+    els.autoCount.textContent = auto.length;
     els.doneCount.textContent = done.length;
     els.todoList.replaceChildren(...todo.map(renderPaper));
+    els.autoList.replaceChildren(...auto.map(renderPaper));
     els.doneList.replaceChildren(...done.map(renderPaper));
     els.noResult.hidden = total === 0 || visible.length > 0;
 
@@ -558,8 +655,23 @@
     );
   }
 
+  // Un prélèvement automatique dont la date est passée avance tout seul à
+  // l'échéance suivante. Renvoie vrai si une fiche a changé.
+  async function rollAutoPayments(list) {
+    let changed = false;
+    for (const paper of list) {
+      if (!isAutoPaid(paper) || Reminders.daysUntil(paper.dueDate) >= 0) continue;
+      const due = Reminders.currentDue(paper.dueDate, paper.repeat, paper.repeatDay);
+      if (due === paper.dueDate) continue;
+      await PaperStore.update(paper.id, { dueDate: due, updatedAt: new Date().toISOString() });
+      changed = true;
+    }
+    return changed;
+  }
+
   async function refresh() {
     papers = await PaperStore.list();
+    if (await rollAutoPayments(papers)) papers = await PaperStore.list();
 
     searchTexts.clear();
     for (const paper of papers) searchTexts.set(paper.id, buildSearchText(paper));
@@ -577,6 +689,7 @@
   function resetView() {
     view.query = '';
     view.category = 'all';
+    view.regular = false;
     els.search.value = '';
     render();
   }
@@ -659,6 +772,13 @@
   // Enregistre l'état « traité » d'un papier, avec d'éventuels autres champs.
   // `announce` affiche un message qui permet d'annuler.
   async function saveDone(paper, done, extraFields, announce) {
+    // Une échéance qui revient, une fois traitée, passe à la suivante au lieu
+    // de rejoindre les papiers traités.
+    const merged = Object.assign({}, paper, extraFields);
+    if (done && !merged.autoPay) {
+      const next = Reminders.nextDue(merged.dueDate, merged.repeat, merged.repeatDay);
+      if (next) return advanceRegular(paper, merged, extraFields, next, announce);
+    }
     const now = new Date().toISOString();
     await PaperStore.update(
       paper.id,
@@ -673,6 +793,35 @@
     showToast(
       done ? name + ' est traité.' : name + ' est remis à traiter.',
       () => saveDone(paper, !done, null, false).catch(reportDoneError),
+      'Annuler'
+    );
+  }
+
+  async function advanceRegular(paper, merged, extraFields, next, announce) {
+    const now = new Date().toISOString();
+    const before = {
+      dueDate: merged.dueDate,
+      reminded: merged.reminded || {},
+      history: merged.history || [],
+      updatedAt: now,
+    };
+    const history = before.history.concat({ due: merged.dueDate, doneAt: now }).slice(-HISTORY_MAX);
+    await PaperStore.update(
+      paper.id,
+      Object.assign({}, extraFields, { dueDate: next, reminded: Reminders.armed(next), history, updatedAt: now })
+    );
+    await refresh();
+    if (!announce) return;
+    showToast(
+      '« ' + merged.organisation + ' » est traité. Prochaine échéance le ' + formatDueDate(parseDay(next)) + '.',
+      async () => {
+        try {
+          await PaperStore.update(paper.id, before);
+          await refresh();
+        } catch (error) {
+          reportDoneError(error);
+        }
+      },
       'Annuler'
     );
   }
@@ -1217,6 +1366,8 @@
     setFieldError(els.organisationError, els.organisation, false);
     setFieldError(els.dueDateError, els.dueDate, false);
     setFieldError(els.noteError, els.note, false);
+    setFieldError(els.amountError, els.amount, false);
+    setFieldError(els.dueRequiredError, null, false);
   }
 
   function releaseFileUrl() {
@@ -1271,17 +1422,59 @@
   // « Rappels 7 jours avant et la veille », sous la date limite, dès qu'une
   // date est saisie pour un papier à traiter.
   function renderReminderRow() {
+    const repeat = Number(els.repeat.value) || 0;
+    const autoPay = repeat > 0 && els.autopay.checked;
+    els.autopayRow.hidden = repeat === 0;
     els.reminderRow.hidden = !(
       sheet &&
       !(sheet.mode === 'edit' && sheet.paper.done) &&
       els.dueDate.value !== ''
     );
+    if (autoPay) {
+      els.reminderRow.textContent = 'Pas de rappel : la date passe seule à l\'échéance suivante.';
+    } else if (repeat > 0) {
+      els.reminderRow.textContent =
+        'Rappels 7 jours avant et la veille. Une fois traitée, la date passe à l\'échéance suivante.';
+    } else {
+      els.reminderRow.textContent = 'Rappels 7 jours avant et la veille.';
+    }
+    renderDoneToggle();
+  }
+
+  // Jour du mois d'origine d'une échéance qui revient : gardé tant que la
+  // date n'est pas changée à la main (voir Reminders.nextDue).
+  function repeatDayFor(dueValue) {
+    const paper = sheet && sheet.mode === 'edit' ? sheet.paper : null;
+    if (paper && paper.dueDate === dueValue && paper.repeatDay) return paper.repeatDay;
+    const date = parseDay(dueValue);
+    return date ? date.getDate() : null;
+  }
+
+  // Le bouton du bas de la fiche dit ce qu'il va faire.
+  function renderDoneToggle() {
+    if (!sheet || sheet.mode !== 'edit') return;
+    const paper = sheet.paper;
+    const repeat = Number(els.repeat.value) || 0;
+    let label = 'Marquer comme traité';
+    if (paper.done) {
+      label = 'Remettre à traiter';
+    } else if (repeat > 0 && els.autopay.checked) {
+      label = 'Arrêter : ne revient plus';
+    } else if (repeat > 0) {
+      const next = Reminders.nextDue(els.dueDate.value, repeat, repeatDayFor(els.dueDate.value));
+      if (next) label = 'Traité · prochaine le ' + formatDueDate(parseDay(next));
+    }
+    els.doneToggle.textContent = label;
   }
 
   // Une note sans document : pas d'aperçu ni de pages, la note devient le
   // champ principal (obligatoire).
   function setNoteOnly(on) {
     if (sheet) sheet.noteOnly = on;
+    // La note est le premier champ d'une note sans document ; pour un papier
+    // avec document, elle s'ouvre en bas, sous « + Note ».
+    if (on) els.form.insertBefore(els.noteField, els.categoryField);
+    else els.moreRow.after(els.noteField);
     els.pagesBlock.hidden = on;
     els.noteOptional.hidden = on;
     showNoteField(on || els.note.value.trim() !== '');
@@ -1299,6 +1492,20 @@
     els.noteField.hidden = !open;
     els.noteToggle.hidden = open;
     els.noteToggle.setAttribute('aria-expanded', String(open));
+    renderMoreRow();
+  }
+
+  function renderMoreRow() {
+    els.moreRow.hidden = els.noteToggle.hidden && els.moneyToggle.hidden;
+  }
+
+  // Montant et échéance qui revient : repliés derrière un lien tant qu'ils
+  // sont vides, pour la même raison que la note.
+  function showMoney(open) {
+    els.moneyBlock.hidden = !open;
+    els.moneyToggle.hidden = open;
+    els.moneyToggle.setAttribute('aria-expanded', String(open));
+    renderMoreRow();
   }
 
   function chooseNote() {
@@ -1351,6 +1558,8 @@
     els.saveButton.textContent = 'Ajouter';
     els.changeButton.hidden = false;
     els.doneStatus.hidden = true;
+    els.repeatHistory.hidden = true;
+    showMoney(false);
     els.doneToggle.hidden = true;
     els.deleteZone.hidden = true;
     renderReminderRow();
@@ -1387,7 +1596,18 @@
     els.deleteZone.hidden = false;
 
     els.doneToggle.hidden = false;
-    els.doneToggle.textContent = paper.done ? 'Remettre à traiter' : 'Marquer comme traité';
+    els.amount.value = amountForInput(paper.amount);
+    els.repeat.value = String(REPEATS[paper.repeat] ? paper.repeat : 0);
+    els.autopay.checked = Boolean(paper.autoPay);
+    showMoney(typeof paper.amount === 'number' || els.repeat.value !== '0');
+    const history = paper.history || [];
+    els.repeatHistory.hidden = history.length === 0;
+    if (history.length > 0) {
+      const last = Reminders.formatDay(formats.long, new Date(history[history.length - 1].doneAt));
+      els.repeatHistory.textContent =
+        (history.length > 1 ? 'Déjà traitée ' + history.length + ' fois, la dernière le ' : 'Déjà traitée le ') +
+        last + '.';
+    }
     els.doneStatus.hidden = !paper.done;
     els.doneStatus.textContent = paper.doneAt
       ? 'Traité le ' + Reminders.formatDay(formats.long, new Date(paper.doneAt))
@@ -1445,12 +1665,21 @@
       (els.dueDate.validity && els.dueDate.validity.badInput) ||
       (dueValue !== '' && !parseDay(dueValue));
 
+    const amount = parseAmount(els.amount.value);
+    const amountInvalid = Number.isNaN(amount);
+    const repeat = REPEATS[els.repeat.value] ? Number(els.repeat.value) : 0;
+    // Une échéance qui revient a forcément une date.
+    const dueMissing = repeat > 0 && dueValue === '' && !dueIncomplete;
+    setFieldError(els.amountError, els.amount, amountInvalid);
+    setFieldError(els.dueRequiredError, els.dueDate, dueMissing);
+
     const note = els.note.value.trim().slice(0, 2000);
     const noteMissing = Boolean(sheet && sheet.noteOnly) && !note;
     setFieldError(els.noteError, els.note, noteMissing);
     setFieldError(els.categoryError, null, !checked);
     setFieldError(els.organisationError, els.organisation, !organisation);
     setFieldError(els.dueDateError, els.dueDate, dueIncomplete);
+    if (dueMissing) els.dueDate.setAttribute('aria-invalid', 'true');
 
     // Si la date limite change, les rappels repartent de zéro pour la
     // nouvelle date (sans prévenir d'une échéance qu'on vient de saisir).
@@ -1469,11 +1698,24 @@
       els.organisation.focus();
       return null;
     }
-    if (dueIncomplete) {
+    if (dueIncomplete || dueMissing) {
       els.dueDate.focus();
       return null;
     }
-    const fields = { category: checked.value, organisation, dueDate: dueValue || null, note };
+    if (amountInvalid) {
+      els.amount.focus();
+      return null;
+    }
+    const fields = {
+      category: checked.value,
+      organisation,
+      dueDate: dueValue || null,
+      note,
+      amount,
+      repeat,
+      repeatDay: repeat > 0 ? repeatDayFor(dueValue) : null,
+      autoPay: repeat > 0 && els.autopay.checked,
+    };
     if (reminded) fields.reminded = reminded;
     return fields;
   }
@@ -1701,6 +1943,7 @@
     const button = event.target.closest('.filter');
     if (!button) return;
     view.category = button.dataset.filter;
+    view.regular = false;
     render();
   });
   els.resetView.addEventListener('click', resetView);
@@ -1746,7 +1989,23 @@
   );
   els.dueDate.addEventListener('input', () => {
     setFieldError(els.dueDateError, els.dueDate, false);
+    setFieldError(els.dueRequiredError, null, false);
     renderReminderRow();
+  });
+  els.amount.addEventListener('input', () => setFieldError(els.amountError, els.amount, false));
+  els.repeat.addEventListener('change', () => {
+    setFieldError(els.dueRequiredError, null, false);
+    renderReminderRow();
+  });
+  els.autopay.addEventListener('change', renderReminderRow);
+  els.moneyToggle.addEventListener('click', () => {
+    showMoney(true);
+    els.amount.focus();
+  });
+  els.sumRegular.addEventListener('click', () => {
+    view.regular = !view.regular;
+    if (view.regular) view.category = 'all';
+    render();
   });
 
   els.doneToggle.addEventListener('click', onDoneToggle);
@@ -1798,6 +2057,7 @@
     const button = event.target.closest('.side-item');
     if (!button) return;
     view.category = button.dataset.filter;
+    view.regular = false;
     render();
   });
   els.sideAdd.addEventListener('click', openAdd);
@@ -1877,7 +2137,8 @@
   // les rappels.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
-    render();
+    // Refaire la liste depuis la base : un prélèvement a pu passer de date.
+    refresh().catch((error) => console.error(error));
     checkReminders();
   });
   setInterval(checkReminders, REMINDER_CHECK_DELAY);
