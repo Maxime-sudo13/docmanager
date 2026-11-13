@@ -89,17 +89,19 @@ const PaperStore = (function () {
       return records.map(toPaper);
     },
 
-    /** Enregistre une nouvelle fiche et son fichier, ensemble ou pas du tout. */
+    /** Enregistre une nouvelle fiche et son fichier, ensemble ou pas du tout.
+     *  `file` peut manquer : c'est alors une note sans document. */
     async add(paper, file) {
       // Les conversions se font avant d'ouvrir la transaction : elle se
       // refermerait toute seule pendant qu'on attend.
       const record = Object.assign({}, paper, {
         thumbnail: paper.thumbnail ? await paper.thumbnail.arrayBuffer() : null,
       });
-      const data = await file.arrayBuffer();
+      // Une note sans document (`file` absent) n'a que sa fiche.
+      const data = file ? await file.arrayBuffer() : null;
       await transaction([PAPERS, FILES], 'readwrite', (tx) => {
         tx.objectStore(PAPERS).add(record);
-        tx.objectStore(FILES).add({ id: paper.id, type: file.type || paper.type || '', data });
+        if (data) tx.objectStore(FILES).add({ id: paper.id, type: file.type || paper.type || '', data });
       });
       return toPaper(record);
     },

@@ -1110,6 +1110,55 @@ p {
   font-weight: 400;
 }
 
+.field textarea {
+  display: block;
+  width: 100%;
+  min-height: 88px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit; /* 16 px au moins : sinon l'iPhone zoome à la saisie */
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.field textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.field textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+/* « + Ajouter une note » : discret, aligné à gauche, sous les pages. */
+.note-toggle {
+  justify-self: start;
+  margin: -10px -8px;
+}
+
+/* Bouton « Écrire ou dicter une note » : même allure que les deux autres choix. */
+button.choice {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+/* Première ligne de la note, sous la catégorie, dans la liste. */
+.paper-note {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .field input[type="text"],
 .field input[type="date"] {
   display: block;

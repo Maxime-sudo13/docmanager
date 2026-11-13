@@ -241,6 +241,13 @@ const Backup = (function () {
     const zip = createZip();
     const described = [];
     for (const paper of papers) {
+      // Une note sans document n'a que sa fiche, sauvegardée dans le sommaire.
+      if (paper.noFile) {
+        const note = Object.assign({}, paper, { file: null, thumbnail: null });
+        delete note.extraPages;
+        described.push(note);
+        continue;
+      }
       const file = await PaperStore.getFile(paper.id);
       if (!file) continue; // fiche sans fichier : rien à sauvegarder
       const entry = Object.assign({}, paper, { file: pathFor(paper), thumbnail: null });
@@ -290,7 +297,8 @@ const Backup = (function () {
   function cleanPaper(raw, categories) {
     if (!raw || typeof raw !== 'object') return null;
     const id = text(raw.id, 100);
-    if (!id || typeof raw.file !== 'string') return null;
+    const noFile = raw.noFile === true;
+    if (!id || (!noFile && typeof raw.file !== 'string')) return null;
     const now = new Date().toISOString();
     const reminded = {};
     if (raw.reminded && typeof raw.reminded === 'object') {
@@ -308,6 +316,8 @@ const Backup = (function () {
       doneAt: done ? instant(raw.doneAt) : null,
       reminded,
       fileName: text(raw.fileName, 255),
+      note: typeof raw.note === 'string' ? raw.note.trim().slice(0, 2000) : '',
+      noFile,
       type: /^[\w.+-]+\/[\w.+-]+$/.test(type) ? type : '',
       createdAt: instant(raw.createdAt) || now,
       updatedAt: instant(raw.updatedAt) || now,
@@ -356,6 +366,16 @@ const Backup = (function () {
         continue;
       }
       try {
+        if (paper.noFile) {
+          if (!paper.note) throw new Error('Note vide');
+          paper.size = 0;
+          paper.thumbnail = null;
+          paper.type = '';
+          await PaperStore.add(paper, null);
+          known.add(paper.id);
+          result.added++;
+          continue;
+        }
         const readFile = files.get(raw.file);
         if (!readFile) throw new Error('Fichier absent de la sauvegarde');
         const content = await readFile();
