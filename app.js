@@ -70,6 +70,14 @@
     sumTodo: $('sum-todo'),
     sumRegular: $('sum-regular'),
     sumRegularTotal: $('sum-regular-total'),
+    keepSection: $('keep-section'),
+    keepCount: $('keep-count'),
+    keepList: $('keep-list'),
+    kindChoice: $('kind-choice'),
+    kindHint: $('kind-hint'),
+    dueLabel: $('due-label'),
+    repeatField: $('repeat-field'),
+    pageAdd: $('page-add'),
     autoSection: $('auto-section'),
     autoCount: $('auto-count'),
     autoList: $('auto-list'),
@@ -258,6 +266,11 @@
     return paper.repeat > 0 && Boolean(paper.dueDate);
   }
 
+  // Un papier à garder, sans rien à faire (carte grise, contrat, garantie).
+  function isKept(paper) {
+    return !paper.done && Boolean(paper.keep);
+  }
+
   function isAutoPaid(paper) {
     return !paper.done && isRegular(paper) && Boolean(paper.autoPay);
   }
@@ -288,6 +301,12 @@
     if (paper.done) return { text: 'Date limite : ' + day, level: '' };
     if (isAutoPaid(paper)) return { text: 'Prochain prélèvement : ' + day, level: '' };
     const days = Reminders.daysUntil(paper.dueDate);
+    // Papier à conserver : sa date est une fin de validité.
+    if (paper.keep) {
+      if (days < 0) return { text: 'Expiré · ' + day, level: 'late' };
+      if (days <= Reminders.WEEK_DAYS) return { text: 'Expire ' + (days === 0 ? "aujourd'hui" : days === 1 ? 'demain' : 'dans ' + days + ' jours') + ' · ' + day, level: 'soon' };
+      return { text: "Valable jusqu'au " + day, level: '' };
+    }
     if (days < 0) return { text: 'En retard · ' + day, level: 'late' };
     if (days === 0) return { text: "Aujourd'hui", level: 'soon' };
     if (days === 1) return { text: 'Demain · ' + day, level: 'soon' };
@@ -386,6 +405,7 @@
         isRegular(paper) ? REPEATS[paper.repeat] || '' : '',
         isAutoPaid(paper) ? 'prélèvement automatique' : '',
         paper.thing || '',
+        paper.keep ? 'à conserver' : '',
       ].join(' ')
     );
   }
@@ -409,6 +429,11 @@
     if (a.dueDate) return -1;
     if (b.dueDate) return 1;
     return b.createdAt.localeCompare(a.createdAt);
+  }
+
+  // À conserver : par organisme, comme on range un classeur.
+  function compareKeep(a, b) {
+    return a.organisation.localeCompare(b.organisation, 'fr') || b.createdAt.localeCompare(a.createdAt);
   }
 
   // Traités : le dernier traité d'abord.
@@ -509,7 +534,7 @@
       block.classList.add('cal-none');
       const icon = el('span', 'cal-icon');
       icon.innerHTML = CATEGORY_ICONS[paper.category] || CATEGORY_ICONS.autre;
-      block.append(el('span', 'cal-m', 'Sans date'), icon);
+      block.append(el('span', 'cal-m', paper.keep && !paper.done ? 'Gardé' : 'Sans date'), icon);
       return block;
     }
     if (due && due.level === 'late') block.classList.add('cal-late');
@@ -575,7 +600,7 @@
     done.append(check);
 
     // Un prélèvement automatique n'attend aucun geste : pas de rond « traité ».
-    if (isAutoPaid(paper)) item.append(open);
+    if (isAutoPaid(paper) || isKept(paper)) item.append(open);
     else item.append(open, done);
     return item;
   }
@@ -762,6 +787,8 @@
       if (!paper.done && paper.dueDate && (!next || paper.dueDate < next.dueDate)) next = paper;
     }
     const parts = [thing.papers.length + (thing.papers.length > 1 ? ' papiers' : ' papier')];
+    const kept = thing.papers.filter(isKept).length;
+    if (kept > 0) parts.push(kept + ' à conserver');
     if (cents > 0) parts.push(formatAmount(cents) + ' en tout');
     let nextInfo = null;
     if (next) {
@@ -850,6 +877,10 @@
     els.tabPapers.setAttribute('aria-pressed', String(papersPage));
     els.tabThings.setAttribute('aria-pressed', String(!papersPage));
     els.thingsPage.hidden = view.page !== 'things';
+    // Sur la page d'un objet, ses papiers à conserver (carte grise, contrat…)
+    // passent en tête ; ailleurs, ce qui est à faire d'abord.
+    if (view.page === 'thing') els.todoSection.before(els.keepSection);
+    else els.doneSection.before(els.keepSection);
     if (!papersPage) {
       els.summary.hidden = true;
       els.backupReminder.hidden = true;
@@ -914,18 +945,22 @@
     const visible = papers.filter(matchesView);
     const todo = visible.filter(Reminders.needsAction).sort(compareTodo);
     const auto = visible.filter(isAutoPaid).sort(compareTodo);
+    const keep = visible.filter(isKept).sort(compareKeep);
     const done = visible.filter((paper) => paper.done).sort(compareDone);
 
     els.todoSection.hidden = todo.length === 0;
     els.autoSection.hidden = auto.length === 0;
+    els.keepSection.hidden = keep.length === 0;
     els.doneSection.hidden = done.length === 0;
     // S'il n'y a que des papiers à traiter, l'intertitre « À traiter » est inutile.
     els.todoTitle.hidden = pending === total;
     els.todoCount.textContent = todo.length;
     els.autoCount.textContent = auto.length;
+    els.keepCount.textContent = keep.length;
     els.doneCount.textContent = done.length;
     els.todoList.replaceChildren(...todo.map(renderPaper));
     els.autoList.replaceChildren(...auto.map(renderPaper));
+    els.keepList.replaceChildren(...keep.map(renderPaper));
     els.doneList.replaceChildren(...done.map(renderPaper));
     els.noResult.hidden = total === 0 || visible.length > 0;
     renderPage();
@@ -1085,7 +1120,9 @@
     }
     const name = '« ' + (extraFields ? extraFields.organisation : paper.organisation) + ' »';
     showToast(
-      done ? name + ' est traité.' : name + ' est remis à traiter.',
+      merged.keep
+        ? done ? name + ' est archivé.' : name + ' est de nouveau à conserver.'
+        : done ? name + ' est traité.' : name + ' est remis à traiter.',
       () => saveDone(paper, !done, null, false).catch(reportDoneError),
       'Annuler'
     );
@@ -1715,7 +1752,18 @@
 
   // « Rappels 7 jours avant et la veille », sous la date limite, dès qu'une
   // date est saisie pour un papier à traiter.
+  function isKeepChosen() {
+    const checked = els.kindChoice.querySelector('input:checked');
+    return Boolean(checked && checked.value === 'keep');
+  }
+
   function renderReminderRow() {
+    const keep = isKeepChosen();
+    // À conserver : la date devient une fin de validité, et rien ne revient.
+    els.kindHint.hidden = !keep;
+    els.dueLabel.textContent = keep ? "Valable jusqu'au" : 'Date limite';
+    els.repeatField.hidden = keep;
+    if (keep) els.repeat.value = '0';
     const repeat = Number(els.repeat.value) || 0;
     const autoPay = repeat > 0 && els.autopay.checked;
     els.autopayRow.hidden = repeat === 0;
@@ -1729,6 +1777,8 @@
     } else if (repeat > 0) {
       els.reminderRow.textContent =
         'Rappels 7 jours avant et la veille. Une fois traitée, la date passe à l\'échéance suivante.';
+    } else if (keep) {
+      els.reminderRow.textContent = 'Rappels 7 jours avant la fin et la veille.';
     } else {
       els.reminderRow.textContent = 'Rappels 7 jours avant et la veille.';
     }
@@ -1751,7 +1801,9 @@
     const repeat = Number(els.repeat.value) || 0;
     let label = 'Marquer comme traité';
     if (paper.done) {
-      label = 'Remettre à traiter';
+      label = isKeepChosen() ? 'Remettre parmi les papiers à conserver' : 'Remettre à traiter';
+    } else if (isKeepChosen()) {
+      label = 'Ne plus conserver (archiver)';
     } else if (repeat > 0 && els.autopay.checked) {
       label = 'Arrêter : ne revient plus';
     } else if (repeat > 0) {
@@ -1769,7 +1821,8 @@
     // avec document, elle s'ouvre en bas, sous « + Note ».
     if (on) els.form.insertBefore(els.noteField, els.categoryField);
     else els.moreRow.after(els.noteField);
-    els.pagesBlock.hidden = on;
+    els.pageAdd.hidden = on;
+    renderPagesBlock();
     els.noteOptional.hidden = on;
     showNoteField(on || els.note.value.trim() !== '');
     if (on) {
@@ -1908,6 +1961,7 @@
     els.amount.value = amountForInput(paper.amount);
     els.repeat.value = String(REPEATS[paper.repeat] ? paper.repeat : 0);
     els.autopay.checked = Boolean(paper.autoPay);
+    els.kindChoice.querySelector('input[value="' + (paper.keep ? 'keep' : 'todo') + '"]').checked = true;
     showMoney(typeof paper.amount === 'number' || els.repeat.value !== '0');
     els.thing.value = paper.thing || '';
     showThing(Boolean(paper.thing));
@@ -1978,7 +2032,8 @@
 
     const amount = parseAmount(els.amount.value);
     const amountInvalid = Number.isNaN(amount);
-    const repeat = REPEATS[els.repeat.value] ? Number(els.repeat.value) : 0;
+    const keep = isKeepChosen();
+    const repeat = !keep && REPEATS[els.repeat.value] ? Number(els.repeat.value) : 0;
     // Une échéance qui revient a forcément une date.
     const dueMissing = repeat > 0 && dueValue === '' && !dueIncomplete;
     setFieldError(els.amountError, els.amount, amountInvalid);
@@ -2027,6 +2082,7 @@
       repeatDay: repeat > 0 ? repeatDayFor(dueValue) : null,
       autoPay: repeat > 0 && els.autopay.checked,
       thing: cleanThing(els.thing.value),
+      keep,
     };
     if (reminded) fields.reminded = reminded;
     return fields;
@@ -2141,8 +2197,14 @@
   // Les pages en plus de la première : celles déjà enregistrées (`key`) et
   // celles ajoutées dans la feuille (`isNew`), enregistrées avec « Ajouter » ou
   // « Enregistrer ». Une page retirée l'est aussi à l'enregistrement.
+  // La rangée des pages n'apparaît que s'il y en a.
+  function renderPagesBlock() {
+    els.pagesBlock.hidden = !sheet || sheet.noteOnly || sheet.pages.length === 0;
+  }
+
   function renderPages() {
     const pages = sheet ? sheet.pages : [];
+    renderPagesBlock();
     els.pagesList.replaceChildren(
       ...pages.map((page, index) => {
         const number = index + 2;
@@ -2311,6 +2373,7 @@
     renderReminderRow();
   });
   els.autopay.addEventListener('change', renderReminderRow);
+  els.kindChoice.addEventListener('change', renderReminderRow);
   els.thingToggle.addEventListener('click', () => {
     showThing(true);
     els.thing.focus();

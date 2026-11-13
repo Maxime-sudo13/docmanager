@@ -83,7 +83,9 @@ la suivante.
 | 9. Notes : écrire ou dicter, avec ou sans document | Livrée, en attente de test |
 | 10. Repérer seul dates et actions dans une note | À faire, plus tard (idée 3 de l'analyse du 13 novembre) |
 | 11. Échéances qui reviennent et montants | Livrée, en attente de test |
-| 12. Objets (voiture, logement, appareils) | Livrée, en attente de test |
+| 12. Objets (voiture, logement, appareils) | Livrée (page à part depuis la PR #14) |
+| 13. Papiers à conserver | Livrée, en attente de test |
+| 14. Nouvelle structure : « À faire », « Classeur », « Objets » | Proposée, à valider |
 
 ## Retours de l'utilisateur
 
@@ -364,6 +366,45 @@ objets.
 - Vider le champ retire le papier de l'objet ; un objet sans papier disparaît
   (retour à la page « Objets »).
 
+Étape 13 (14 novembre 2026, demandée par l'utilisateur : « une section
+papiers à conserver pour chaque objet ») :
+
+- **Un papier est « À traiter » ou « À conserver »**, au choix en haut de la
+  fiche (deux boutons côte à côte, « À traiter » par défaut). À conserver :
+  carte grise, contrat, garantie, diplôme… Rien à faire, donc pas de rond
+  « traité », pas de place dans les trois cases du résumé, pas de « Revient ».
+- **Sa date devient « Valable jusqu'au »**, facultative : un passeport, une
+  garantie. Elle garde les rappels 7 jours avant et la veille, et la liste dit
+  « Expire dans 5 jours » ou « Expiré ».
+- **Un groupe « À conserver »** dans la liste, rangé par organisme comme un
+  classeur. Sur la page d'un objet, il passe **en tête** (la carte grise avant
+  les factures) ; la carte de l'objet dit « 1 à conserver ».
+- **« Ne plus conserver (archiver) »** dans la fiche le range dans les
+  traités ; « Annuler » le remet.
+- **« + Page » passe à côté de la légende de l'aperçu** (« Image · 366 Ko »),
+  en plus petit, et la rangée des pages n'apparaît que s'il y en a : c'est la
+  place qu'il fallait pour le choix « À traiter / À conserver » sans que
+  « Ajouter » sorte de l'écran du téléphone.
+- Les papiers déjà enregistrés restent « À traiter ».
+
+## Structure proposée pour la suite (à valider)
+
+L'application n'est plus seulement une boîte à papiers : elle a des
+échéances, des abonnements, des objets et des papiers à garder. La page
+« Papiers » empile maintenant tout (résumé, total, rappel de sauvegarde,
+recherche, catégories, quatre groupes). Proposition, en trois onglets :
+
+1. **« À faire »** (l'accueil) : les trois cases, les dépenses régulières,
+   ce qui est à traiter et les prélèvements. Ce qui bouge, rien d'autre.
+2. **« Classeur »** : tous les papiers, avec la recherche et les catégories ;
+   les papiers à conserver d'abord, puis les archives (traités).
+3. **« Objets »** : comme aujourd'hui.
+
+Le bouton « Ajouter » ouvrirait la fiche réglée selon l'onglet (« À
+conserver » depuis le Classeur, objet rempli depuis un objet). Pas de
+changement dans les données. À faire seulement après accord de
+l'utilisateur, avec une maquette avant.
+
 ## Ce qu'il reste pour la mise en ligne
 
 1. **Historique nettoyé, fait le 12 novembre 2026.** L'adresse personnelle de
@@ -431,6 +472,10 @@ objets.
   (`view.thing` = clé de l'objet), lue dans l'adresse par `readRoute()` et
   changée par `goTo()` (historique du navigateur). Sauvegardé et revérifié à
   la restauration.
+- **Papiers à conserver (étape 13)** : champ `keep` (booléen). Dans
+  `reminders.js`, `needsAction()` (résumé, « À traiter ») exclut les papiers
+  à conserver ; `remindable()` (rappels) les garde. Un papier à conserver n'a
+  jamais `repeat` (forcé à 0 à l'enregistrement et à la restauration).
 - **`icons/chevron.svg`** : la flèche de la liste « Revient » (une image, la
   règle de sécurité interdisant les images `data:`).
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la

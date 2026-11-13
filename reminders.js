@@ -102,8 +102,15 @@ const Reminders = (function () {
     return due;
   }
 
-  // Un papier pour lequel on attend un geste : ni traité, ni prélevé tout seul.
+  // Un papier pour lequel on attend un geste : ni traité, ni prélevé tout
+  // seul, ni simplement à conserver.
   function needsAction(paper) {
+    return remindable(paper) && !paper.keep;
+  }
+
+  // Un papier dont la date mérite un rappel : à traiter, ou à conserver avec
+  // une date de fin de validité (passeport, garantie).
+  function remindable(paper) {
     return !paper.done && !(paper.autoPay && paper.repeat > 0);
   }
 
@@ -116,7 +123,7 @@ const Reminders = (function () {
   function pending(papers) {
     const result = [];
     for (const paper of papers) {
-      if (!needsAction(paper)) continue;
+      if (!remindable(paper)) continue;
       const days = daysUntil(paper.dueDate);
       if (days === null || days < 0 || days > WEEK_DAYS) continue;
       const reminded = paper.reminded || {};
@@ -152,7 +159,7 @@ const Reminders = (function () {
     const start = today();
     const result = [];
     for (const paper of papers) {
-      if (!needsAction(paper)) continue;
+      if (!remindable(paper)) continue;
       const due = parseDay(paper.dueDate);
       if (!due) continue;
       const reminded = paper.reminded || {};
@@ -180,7 +187,10 @@ const Reminders = (function () {
     return {
       title: when(item.days) + ' : ' + item.paper.organisation,
       options: {
-        body: 'Date limite le ' + formatDay(longDay, parseDay(item.paper.dueDate)) + '.',
+        body:
+          (item.paper.keep ? 'Fin de validité le ' : 'Date limite le ') +
+          formatDay(longDay, parseDay(item.paper.dueDate)) +
+          '.',
         tag: 'papier-' + item.paper.id, // un seul message à la fois par papier
         data: { id: item.paper.id },
         lang: 'fr',

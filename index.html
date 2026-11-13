@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-13h">
+  <link rel="stylesheet" href="style.css?v=2026-11-14a">
 </head>
 <body>
 
@@ -181,6 +181,12 @@
       <ul id="auto-list" class="paper-list"></ul>
     </section>
 
+    <!-- Les papiers à garder : rien à faire, on les retrouve ici. -->
+    <section id="keep-section" class="group" aria-labelledby="keep-title" hidden>
+      <h2 id="keep-title" class="group-title">À conserver <span id="keep-count" class="group-count"></span></h2>
+      <ul id="keep-list" class="paper-list"></ul>
+    </section>
+
     <section id="done-section" class="group" aria-labelledby="done-title" hidden>
       <h2 id="done-title" class="group-title">Traités <span id="done-count" class="group-count"></span></h2>
       <ul id="done-list" class="paper-list"></ul>
@@ -257,16 +263,16 @@
           </a>
           <div class="preview-meta">
             <p id="preview-caption"></p>
+            <!-- Pages suivantes d'un courrier de plusieurs pages. -->
+            <label id="page-add" class="page-add">
+              <input id="page-input" class="visually-hidden" type="file" accept="image/*,application/pdf">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+              Page
+            </label>
             <button id="change-button" class="link-button" type="button">Changer</button>
           </div>
-          <!-- Pages suivantes d'un courrier de plusieurs pages. -->
-          <div id="pages-block" class="pages">
+          <div id="pages-block" class="pages" hidden>
             <div id="pages-list" class="pages-list"></div>
-            <label class="page-add">
-              <input id="page-input" class="visually-hidden" type="file" accept="image/*,application/pdf">
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-              Ajouter une page
-            </label>
           </div>
           <p id="done-status" class="done-status" hidden></p>
         </div>
@@ -278,6 +284,16 @@
                     aria-describedby="note-hint note-error"></textarea>
           <p id="note-hint" class="hint">Pour dicter, touchez le micro du clavier.</p>
           <p id="note-error" class="field-error" hidden>Écrire ou dicter la note.</p>
+        </div>
+
+        <!-- Un papier à traiter (une action, une échéance) ou à conserver
+             (carte grise, contrat, garantie, diplôme…). -->
+        <div class="field">
+          <div id="kind-choice" class="segmented" role="radiogroup" aria-label="Ce papier est">
+            <label><input class="visually-hidden" type="radio" name="kind" value="todo" checked><span>À traiter</span></label>
+            <label><input class="visually-hidden" type="radio" name="kind" value="keep"><span>À conserver</span></label>
+          </div>
+          <p id="kind-hint" class="hint" hidden>Un papier à garder, sans rien à faire : carte grise, contrat, garantie, diplôme…</p>
         </div>
 
         <fieldset class="field">
@@ -297,7 +313,7 @@
         </div>
 
         <div class="field">
-          <label for="due-date">Date limite <span class="optional">facultative</span></label>
+          <label for="due-date"><span id="due-label">Date limite</span> <span class="optional">facultative</span></label>
           <input id="due-date" name="dueDate" type="date" aria-describedby="due-date-error">
           <p id="due-date-error" class="field-error" hidden>Compléter la date ou la laisser vide.</p>
           <p id="due-required-error" class="field-error" hidden>Pour une échéance qui revient, indiquer la prochaine date.</p>
@@ -330,7 +346,7 @@
               <span class="amount-unit" aria-hidden="true">€</span>
             </div>
           </div>
-          <div class="field">
+          <div id="repeat-field" class="field">
             <label for="repeat">Revient</label>
             <select id="repeat" name="repeat">
               <option value="0">Non</option>
@@ -462,9 +478,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-13h"></script>
-  <script src="reminders.js?v=2026-11-13h"></script>
-  <script src="backup.js?v=2026-11-13h"></script>
-  <script src="app.js?v=2026-11-13h"></script>
+  <script src="store.js?v=2026-11-14a"></script>
+  <script src="reminders.js?v=2026-11-14a"></script>
+  <script src="backup.js?v=2026-11-14a"></script>
+  <script src="app.js?v=2026-11-14a"></script>
 </body>
 </html>

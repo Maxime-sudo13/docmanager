@@ -1378,6 +1378,7 @@ p {
 }
 
 .preview-meta p {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1507,6 +1508,38 @@ button.choice {
 .field-error {
   color: var(--danger);
   font-size: 0.875rem;
+}
+
+/* « À traiter » ou « À conserver » : deux boutons côte à côte. */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 14px;
+}
+
+.segmented label {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  border-radius: 11px;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented label:has(input:checked) {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(var(--shadow) / 0.12);
+  color: var(--ink);
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* « + Note » et « + Montant ou abonnement », sur une ligne. */
@@ -1788,14 +1821,15 @@ button.choice {
 
 .page-add {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 12px;
   border: 1px dashed var(--field-border);
   border-radius: 999px;
   color: var(--accent);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
 }

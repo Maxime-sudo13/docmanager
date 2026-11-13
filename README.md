@@ -76,6 +76,15 @@ comme si nous étions ce jour-là, et l'indique par un bandeau.
    du téléphone ramène à la liste des objets. « Renommer » change le nom sur
    tous ses papiers ; « Ajouter un papier » lui rattache le nouveau.
 
+## Tester les papiers à conserver
+
+1. Ajouter un papier, choisir « À conserver » en haut de la fiche (une carte
+   grise, avec l'objet « Clio »).
+2. Il apparaît dans le groupe « À conserver », sans rond à cocher, et ne
+   compte pas dans les trois cases. Sur la page de la Clio, il est en tête.
+3. Un passeport « Valable jusqu'au » dans 5 jours affiche « Expire dans
+   5 jours » et figure dans les rappels.
+
 ## Tester la sauvegarde
 
 1. Ajouter deux ou trois papiers, puis toucher « ⋮ » en haut à droite et

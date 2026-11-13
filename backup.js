@@ -310,7 +310,7 @@ const Backup = (function () {
     // Montant en centimes ; échéance qui revient tous les 1, 3, 12 ou 24 mois.
     const amount =
       Number.isInteger(raw.amount) && raw.amount >= 0 && raw.amount <= 100000000 ? raw.amount : null;
-    const repeat = [1, 3, 12, 24].includes(raw.repeat) && day(raw.dueDate) ? raw.repeat : 0;
+    const repeat = [1, 3, 12, 24].includes(raw.repeat) && day(raw.dueDate) && raw.keep !== true ? raw.repeat : 0;
     const repeatDay =
       repeat > 0 && Number.isInteger(raw.repeatDay) && raw.repeatDay >= 1 && raw.repeatDay <= 31
         ? raw.repeatDay
@@ -338,6 +338,7 @@ const Backup = (function () {
       autoPay: repeat > 0 && raw.autoPay === true,
       history,
       thing: text(raw.thing, 60).replace(/\s+/g, ' '),
+      keep: raw.keep === true,
       type: /^[\w.+-]+\/[\w.+-]+$/.test(type) ? type : '',
       createdAt: instant(raw.createdAt) || now,
       updatedAt: instant(raw.updatedAt) || now,
