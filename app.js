@@ -86,8 +86,15 @@
     thingField: $('thing-field'),
     thing: $('thing'),
     thingList: $('thing-list'),
-    thingFilters: $('thing-filters'),
-    sideThingsTitle: $('side-things-title'),
+    tabs: $('tabs'),
+    tabPapers: $('tab-papers'),
+    tabThings: $('tab-things'),
+    thingsPage: $('things-page'),
+    thingsGrid: $('things-grid'),
+    thingsEmpty: $('things-empty'),
+    thingBack: $('thing-back'),
+    sideThingsAll: $('side-things-all'),
+    sideThingsCount: $('side-things-count'),
     sideThings: $('side-things'),
     thingCard: $('thing-card'),
     thingName: $('thing-name'),
@@ -97,7 +104,6 @@
     thingRenameCancel: $('thing-rename-cancel'),
     thingRenameButton: $('thing-rename-button'),
     thingActions: $('thing-actions'),
-    thingAdd: $('thing-add'),
     categoryField: $('category-chips').closest('fieldset'),
     dueRequiredError: $('due-required-error'),
     sideNav: $('side-nav'),
@@ -192,9 +198,11 @@
   };
 
   let papers = [];                    // toutes les fiches
-  // Recherche et filtre en cours ; `regular` : seulement les échéances qui
-  // reviennent ; `thing` : seulement les papiers d'un objet (sa clé, voir thingKey).
-  const view = { query: '', category: 'all', regular: false, thing: '' };
+  // Page affichée (`page`) : 'papers' (la liste), 'things' (les objets) ou
+  // 'thing' (un objet et ses papiers, `thing` étant sa clé, voir thingKey).
+  // Sur la page des papiers : recherche, catégorie, et `regular` pour ne
+  // garder que les échéances qui reviennent.
+  const view = { page: 'papers', query: '', category: 'all', regular: false, thing: '' };
   let things = [];                    // objets : [{ key, name, papers }], par nom
   // Feuille ouverte : { mode: 'add', file, fileUrl } pour un nouveau papier,
   // { mode: 'edit', paper, fileUrl } pour un papier existant, sinon null.
@@ -383,9 +391,10 @@
   }
 
   function matchesView(paper) {
+    if (view.page === 'thing') return thingKey(paper.thing) === view.thing;
+    if (view.page === 'things') return false;
     if (view.category !== 'all' && paper.category !== view.category) return false;
     if (view.regular && !isRegular(paper)) return false;
-    if (view.thing && thingKey(paper.thing) !== view.thing) return false;
     const words = normalize(view.query).split(/\s+/).filter(Boolean);
     const text = searchTexts.get(paper.id) || '';
     return words.every((word) => text.includes(word));
@@ -535,7 +544,7 @@
       meta.append(label);
     }
     if (typeof paper.amount === 'number') meta.append(el('span', 'paper-amount', formatAmount(paper.amount)));
-    if (paper.thing && !view.thing) {
+    if (paper.thing && view.page !== 'thing') {
       const thing = el('span', 'paper-thing');
       thing.innerHTML = THING_ICON;
       thing.append(paper.thing);
@@ -603,7 +612,7 @@
       );
     }
     for (const button of els.filters.children) {
-      button.setAttribute('aria-pressed', String(button.dataset.filter === view.category && !view.regular && !view.thing));
+      button.setAttribute('aria-pressed', String(view.page === 'papers' && button.dataset.filter === view.category && !view.regular));
     }
     renderSideNav(used);
   }
@@ -615,7 +624,7 @@
       button.type = 'button';
       button.dataset.filter = id;
       if (id !== 'all') button.dataset.category = id;
-      button.setAttribute('aria-pressed', String(view.category === id && !view.regular && !view.thing));
+      button.setAttribute('aria-pressed', String(view.page === 'papers' && view.category === id && !view.regular));
       button.append(el('span', 'dot'), el('span', 'side-label', label), el('span', 'side-count', String(count)));
       return button;
     };
@@ -627,9 +636,11 @@
     );
     const current = CATEGORIES.find((category) => category.id === view.category);
     const thing = things.find((candidate) => candidate.key === view.thing);
-    els.viewTitle.textContent = thing
+    els.viewTitle.textContent = view.page === 'thing' && thing
       ? thing.name
-      : view.regular
+      : view.page === 'things'
+        ? 'Objets'
+        : view.regular
         ? 'Dépenses régulières'
         : current ? current.label : 'Tous les papiers';
   }
@@ -680,31 +691,33 @@
     els.sumRegular.setAttribute('aria-pressed', String(view.regular));
   }
 
-  // Les objets : une rangée de pastilles sur téléphone, une liste dans la
-  // barre latérale sur ordinateur, et la carte de l'objet choisi.
+  // Les objets : la page « Objets » (une carte par objet), la liste de la
+  // barre latérale sur ordinateur, et l'en-tête de la page d'un objet.
   function renderThings() {
     things = collectThings();
-    if (view.thing && !things.some((thing) => thing.key === view.thing)) view.thing = '';
+    // Un objet qui n'a plus de papier (renommé, vidé, supprimé) : retour à la liste.
+    if (view.page === 'thing' && !things.some((thing) => thing.key === view.thing)) {
+      setRoute('things', '', true);
+    }
 
-    const chip = (thing, className) => {
-      const button = el('button', className);
-      button.type = 'button';
-      button.dataset.thing = thing.key;
-      button.setAttribute('aria-pressed', String(view.thing === thing.key));
-      const icon = el('span', 'thing-icon');
-      icon.innerHTML = THING_ICON;
-      if (className === 'side-item') {
-        button.append(icon, el('span', 'side-label', thing.name), el('span', 'side-count', String(thing.papers.length)));
-      } else {
-        button.append(icon, thing.name);
-      }
-      return button;
+    const icon = () => {
+      const span = el('span', 'thing-icon');
+      span.innerHTML = THING_ICON;
+      return span;
     };
-    els.thingFilters.hidden = things.length === 0;
-    els.thingFilters.replaceChildren(...things.map((thing) => chip(thing, 'filter')));
-    els.sideThingsTitle.hidden = things.length === 0;
+    els.sideThingsCount.textContent = things.length ? String(things.length) : '';
+    els.sideThingsAll.setAttribute('aria-pressed', String(view.page === 'things'));
     els.sideThings.hidden = things.length === 0;
-    els.sideThings.replaceChildren(...things.map((thing) => chip(thing, 'side-item')));
+    els.sideThings.replaceChildren(
+      ...things.map((thing) => {
+        const button = el('button', 'side-item');
+        button.type = 'button';
+        button.dataset.thing = thing.key;
+        button.setAttribute('aria-pressed', String(view.page === 'thing' && view.thing === thing.key));
+        button.append(el('span', 'side-label', thing.name), el('span', 'side-count', String(thing.papers.length)));
+        return button;
+      })
+    );
     els.thingList.replaceChildren(
       ...things.map((thing) => {
         const option = el('option');
@@ -712,35 +725,138 @@
         return option;
       })
     );
+
+    if (view.page === 'things') {
+      els.thingsEmpty.hidden = things.length > 0;
+      els.thingsGrid.replaceChildren(
+        ...things.map((thing) => {
+          const item = el('li');
+          const button = el('button', 'thing-tile');
+          button.type = 'button';
+          button.dataset.thing = thing.key;
+          const stats = thingStats(thing);
+          const text = el('span', 'thing-tile-text');
+          text.append(el('span', 'thing-tile-name', thing.name), el('span', 'thing-tile-stats', stats.summary));
+          if (stats.next) {
+            const next = el('span', 'thing-tile-next', stats.next.text);
+            if (stats.next.level) next.dataset.level = stats.next.level;
+            text.append(next);
+          }
+          button.append(icon(), text, el('span', 'thing-tile-arrow', '›'));
+          item.append(button);
+          return item;
+        })
+      );
+    }
     renderThingCard();
   }
 
-  function renderThingCard() {
-    const thing = things.find((candidate) => candidate.key === view.thing);
-    els.thingCard.hidden = !thing;
-    if (!thing) return;
-    els.thingName.textContent = thing.name;
-    // Montants : chaque papier, plus chaque échéance déjà traitée d'un papier
-    // qui revient (elle a été payée à son tour).
+  // Ce qu'on dit d'un objet : nombre de papiers, montants, prochaine échéance.
+  // Une échéance qui revient compte autant de fois qu'elle a été traitée
+  // (chaque fois, elle a été payée), plus l'échéance en cours.
+  function thingStats(thing) {
     let cents = 0;
     let next = null;
     for (const paper of thing.papers) {
       if (typeof paper.amount === 'number') cents += paper.amount * (1 + (paper.history || []).length);
-      if (!paper.done && paper.dueDate && (!next || paper.dueDate < next)) next = paper.dueDate;
+      if (!paper.done && paper.dueDate && (!next || paper.dueDate < next.dueDate)) next = paper;
     }
     const parts = [thing.papers.length + (thing.papers.length > 1 ? ' papiers' : ' papier')];
     if (cents > 0) parts.push(formatAmount(cents) + ' en tout');
-    if (next) parts.push('prochaine échéance le ' + formatDueDate(parseDay(next)));
-    els.thingStats.textContent = parts.join(' · ');
+    let nextInfo = null;
+    if (next) {
+      const due = dueInfo(next);
+      nextInfo = {
+        text: (due.level ? due.text : 'Prochaine échéance le ' + formatDueDate(parseDay(next.dueDate))) + ' · ' + next.organisation,
+        level: due.level,
+      };
+    }
+    return { summary: parts.join(' · '), next: nextInfo };
   }
 
-  function chooseThing(key) {
-    view.thing = view.thing === key ? '' : key;
-    view.category = 'all';
-    view.regular = false;
+  function renderThingCard() {
+    const thing = view.page === 'thing' && things.find((candidate) => candidate.key === view.thing);
+    els.thingCard.hidden = !thing;
+    if (!thing) return;
+    els.thingName.textContent = thing.name;
+    const stats = thingStats(thing);
+    els.thingStats.textContent = stats.next ? stats.summary + ' · ' + stats.next.text.split(' · ')[0].toLowerCase() : stats.summary;
+  }
+
+  /* ---------- Pages : papiers, objets, un objet ---------- */
+
+  // La page est inscrite dans l'adresse (« #objets », « #objet=clio ») : le
+  // bouton Retour du téléphone ramène à la page précédente.
+  function routeHash(page, key) {
+    if (page === 'things') return '#objets';
+    if (page === 'thing') return '#objet=' + encodeURIComponent(key);
+    return '';
+  }
+
+  function setRoute(page, key, replace) {
+    view.page = page;
+    view.thing = page === 'thing' ? key : '';
+    const hash = routeHash(page, key);
+    if (location.hash !== hash) {
+      const url = location.pathname + location.search + hash;
+      if (replace) history.replaceState(null, '', url);
+      else history.pushState(null, '', url);
+    }
+  }
+
+  function goTo(page, key) {
+    if (view.page === page && view.thing === (key || '')) return;
+    setRoute(page, key || '', false);
+    closeRename();
+    // Sur ordinateur, la fiche ouverte à droite appartient à la page quittée.
+    if (els.dialog.classList.contains('as-panel')) closeSheet();
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  // Lit la page dans l'adresse (arrivée, bouton Retour).
+  function readRoute() {
+    const hash = location.hash;
+    if (hash === '#objets') {
+      view.page = 'things';
+      view.thing = '';
+    } else if (hash.startsWith('#objet=')) {
+      view.page = 'thing';
+      try {
+        view.thing = decodeURIComponent(hash.slice(7));
+      } catch (error) {
+        view.page = 'things';
+        view.thing = '';
+      }
+    } else if (!hash.startsWith('#papier=')) {
+      view.page = 'papers';
+      view.thing = '';
+    }
+  }
+
+  function onRouteChange() {
+    if (location.hash.startsWith('#papier=')) {
+      openPaperFromAddress();
+      return;
+    }
+    readRoute();
     closeRename();
     render();
-    if (view.thing) els.thingCard.scrollIntoView({ block: 'nearest' });
+  }
+
+  // Ce qui n'appartient qu'à la page des papiers, ou qu'aux objets.
+  function renderPage() {
+    const papersPage = view.page === 'papers';
+    els.tabPapers.setAttribute('aria-pressed', String(papersPage));
+    els.tabThings.setAttribute('aria-pressed', String(!papersPage));
+    els.thingsPage.hidden = view.page !== 'things';
+    if (!papersPage) {
+      els.summary.hidden = true;
+      els.backupReminder.hidden = true;
+      els.toolbar.hidden = true;
+      els.empty.hidden = true;
+      els.noResult.hidden = true;
+    }
   }
 
   // Renommer un objet : tous ses papiers changent de nom d'objet.
@@ -770,7 +886,7 @@
     try {
       const now = new Date().toISOString();
       for (const paper of thing.papers) await PaperStore.update(paper.id, { thing: name, updatedAt: now });
-      view.thing = thingKey(name);
+      setRoute('thing', thingKey(name), true);
       closeRename();
       await refresh();
       showToast('Objet renommé « ' + name + ' ».');
@@ -812,6 +928,7 @@
     els.autoList.replaceChildren(...auto.map(renderPaper));
     els.doneList.replaceChildren(...done.map(renderPaper));
     els.noResult.hidden = total === 0 || visible.length > 0;
+    renderPage();
 
     // Les organismes déjà saisis sont proposés pendant la frappe.
     const names = [...new Set(papers.map((paper) => paper.organisation))].sort((a, b) =>
@@ -858,6 +975,7 @@
   }
 
   function resetView() {
+    if (view.page !== 'papers') setRoute('papers', '', false);
     view.query = '';
     view.category = 'all';
     view.regular = false;
@@ -882,7 +1000,11 @@
   function reveal(id) {
     const paper = papers.find((candidate) => candidate.id === id);
     if (!paper) return;
-    if (!matchesView(paper)) resetView();
+    if (!matchesView(paper)) {
+      // Sur les pages des objets, on reste où l'on est (le papier a quitté l'objet).
+      if (view.page !== 'papers') return;
+      resetView();
+    }
     const row = findRow(id);
     if (!row) return;
     row.scrollIntoView({ block: 'center' });
@@ -1280,7 +1402,7 @@
     } catch (error) {
       snoozed = false;
     }
-    els.backupReminder.hidden = !advised || snoozed;
+    els.backupReminder.hidden = !advised || snoozed || view.page !== 'papers';
     if (els.backupReminder.hidden) return;
     const backup = lastBackup();
     const added = addedSince(backup);
@@ -1744,6 +1866,12 @@
     els.doneToggle.hidden = true;
     els.deleteZone.hidden = true;
     renderReminderRow();
+    // Depuis la page d'un objet, le nouveau papier lui est déjà rattaché.
+    const thing = view.page === 'thing' && things.find((candidate) => candidate.key === view.thing);
+    if (thing) {
+      els.thing.value = thing.name;
+      showThing(true);
+    }
     showStep('choose');
     showSheet(false);
   }
@@ -2187,25 +2315,20 @@
     showThing(true);
     els.thing.focus();
   });
-  // Objets : pastilles, barre latérale, carte de l'objet.
-  for (const container of [els.thingFilters, els.sideThings]) {
+  // Pages : onglets (téléphone), barre latérale (ordinateur), cartes d'objets.
+  els.tabPapers.addEventListener('click', () => goTo('papers'));
+  els.tabThings.addEventListener('click', () => goTo('things'));
+  els.sideThingsAll.addEventListener('click', () => goTo('things'));
+  els.thingBack.addEventListener('click', () => goTo('things'));
+  for (const container of [els.thingsGrid, els.sideThings]) {
     container.addEventListener('click', (event) => {
       const button = event.target.closest('[data-thing]');
-      if (button) chooseThing(button.dataset.thing);
+      if (button) goTo('thing', button.dataset.thing);
     });
   }
   els.thingRenameButton.addEventListener('click', openRename);
   els.thingRenameCancel.addEventListener('click', closeRename);
   els.thingRename.addEventListener('submit', renameThing);
-  // « Ajouter un papier » depuis un objet : l'objet est déjà rempli.
-  els.thingAdd.addEventListener('click', () => {
-    const thing = things.find((candidate) => candidate.key === view.thing);
-    openAdd();
-    if (thing) {
-      els.thing.value = thing.name;
-      showThing(true);
-    }
-  });
   els.moneyToggle.addEventListener('click', () => {
     showMoney(true);
     els.amount.focus();
@@ -2269,7 +2392,11 @@
     if (!button) return;
     view.category = button.dataset.filter;
     view.regular = false;
-    view.thing = '';
+    if (view.page !== 'papers') {
+      setRoute('papers', '', false);
+      if (els.dialog.classList.contains('as-panel')) closeSheet();
+      window.scrollTo(0, 0);
+    }
     render();
   });
   els.sideAdd.addEventListener('click', openAdd);
@@ -2367,11 +2494,13 @@
   }
 
   serviceWorker = registerServiceWorker();
+  readRoute(); // arrivée directe sur « #objets » ou « #objet=… »
 
   refresh().then(
     async () => {
       openPaperFromAddress();
-      window.addEventListener('hashchange', openPaperFromAddress);
+      window.addEventListener('hashchange', onRouteChange);
+      window.addEventListener('popstate', onRouteChange);
       if (notificationState() === 'granted') await registerBackgroundCheck();
       checkReminders();
     },

@@ -69,11 +69,12 @@ comme si nous étions ce jour-là, et l'indique par un bandeau.
 
 1. Ajouter deux papiers avec « + Objet » → « Clio » (par exemple une facture
    de garage avec un montant et l'assurance).
-2. La pastille « Clio » apparaît sous les catégories (dans la barre de gauche
-   sur ordinateur). La toucher : la carte de l'objet donne le nombre de
-   papiers, le total des montants et la prochaine échéance.
-3. « Renommer » change le nom sur tous ses papiers ; « Ajouter » crée un
-   papier déjà rattaché.
+2. Onglet « Objets » (en haut sur téléphone, à gauche sur ordinateur) : une
+   carte « Clio » avec le nombre de papiers, le total et la prochaine
+   échéance.
+3. La toucher : la page de la Clio montre tous ses papiers. Le bouton Retour
+   du téléphone ramène à la liste des objets. « Renommer » change le nom sur
+   tous ses papiers ; « Ajouter un papier » lui rattache le nouveau.
 
 ## Tester la sauvegarde
 
