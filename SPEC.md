@@ -89,7 +89,7 @@ la suivante.
 | 13 bis. Créer un objet sans papier, rattacher des papiers existants | Livrée (PR #15) |
 | 13 ter. Catégories personnelles, objet choisi dans une liste, papiers à conserver sans date | Livrée (PR #16) |
 | 13 quater. Groupes repliables, objets rangés par type | Livrée (PR #17) |
-| 13 quinquies. Catégories d'objets créées par l'utilisateur | Livrée, en attente de test |
+| 13 quinquies. Catégories d'objets créées par l'utilisateur | Livrée (PR #18) ; choix dans une liste déroulante en attente de test |
 | 14. Nouvelle structure : « À faire », « Classeur », « Objets » | Proposée, à valider |
 
 ## Retours de l'utilisateur
@@ -459,6 +459,16 @@ ou de l'affecter à une catégorie déjà existante ») :
   apparaître un champ pour en nommer une (« Chiens », « Vélos »). Elle est
   créée avec l'objet. Un nom qui existe déjà, au singulier ou au pluriel
   (« Véhicules »), reprend la catégorie existante.
+- **La catégorie se choisit dans une liste** (14 novembre 2026, retour de
+  l'utilisateur : les boutons ne se lisaient pas comme un choix, il passait
+  par « + Nouvelle » en retapant un nom existant) : une liste déroulante,
+  comme « Objet concerné » dans la fiche d'un papier, avec en dernier
+  « + Nouvelle catégorie… », qui fait apparaître le champ du nom.
+- **« + Nouvelle catégorie » sur la page « Objets »**, à côté de « + Nouvel
+  objet » (demande de l'utilisateur, 14 novembre 2026). Une catégorie
+  d'objets créée là, sans couleur, a aussitôt sa rubrique, même vide :
+  « Aucun objet pour l'instant » et « + Ajouter un objet », qui ouvre
+  « Nouvel objet » avec cette catégorie déjà choisie.
 - **La dernière catégorie choisie est proposée pour l'objet suivant**
   (créer deux chiens d'affilée).
 - Sur la page « Objets », une catégorie ajoutée a sa rubrique, sous son nom

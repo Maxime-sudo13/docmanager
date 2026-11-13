@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-14e">
+  <link rel="stylesheet" href="style.css?v=2026-11-14g">
 </head>
 <body>
 
@@ -143,10 +143,10 @@
 
     <!-- Page « Objets » : une carte par voiture, logement, appareil… -->
     <section id="things-page" class="things-page" aria-label="Objets" hidden>
-      <button id="thing-new" class="btn btn-secondary thing-new" type="button">
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-        Nouvel objet
-      </button>
+      <div class="things-actions">
+        <button id="thing-new" class="btn btn-secondary thing-new" type="button">+ Nouvel objet</button>
+        <button id="kind-new-page" class="btn btn-secondary thing-new" type="button">+ Nouvelle catégorie</button>
+      </div>
       <!-- Les objets, rangés par type : véhicules, logements, appareils… -->
       <div id="things-grid" class="things-groups"></div>
       <div id="things-empty" class="things-empty" hidden>
@@ -398,18 +398,16 @@
         </button>
       </div>
       <form id="thing-form" class="paper-form" novalidate>
-        <fieldset class="field">
-          <legend class="visually-hidden">Catégorie de l'objet</legend>
-          <div class="field-head">
-            <span class="field-head-label" aria-hidden="true">Catégorie</span>
-            <button id="kind-new" class="link-button" type="button">+ Nouvelle</button>
-          </div>
-          <div id="thing-kinds" class="chips thing-kinds"></div>
+        <div class="field">
+          <label for="thing-kinds">Catégorie</label>
+          <!-- Les catégories existantes, puis « + Nouvelle catégorie… », qui
+               fait apparaître un champ pour la nommer. -->
+          <select id="thing-kinds" name="thing-kind"></select>
           <input id="kind-new-name" type="text" maxlength="24" autocomplete="off" enterkeyhint="next" hidden
                  placeholder="Nom de la catégorie : Chiens, Vélos…" aria-label="Nom de la nouvelle catégorie"
                  aria-describedby="kind-new-error">
           <p id="kind-new-error" class="field-error" hidden>Donner un nom à la catégorie.</p>
-        </fieldset>
+        </div>
         <div class="field">
           <label for="thing-name-input">Nom</label>
           <input id="thing-name-input" type="text" maxlength="60" autocomplete="off" enterkeyhint="done"
@@ -593,9 +591,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-14e"></script>
-  <script src="reminders.js?v=2026-11-14e"></script>
-  <script src="backup.js?v=2026-11-14e"></script>
-  <script src="app.js?v=2026-11-14e"></script>
+  <script src="store.js?v=2026-11-14g"></script>
+  <script src="reminders.js?v=2026-11-14g"></script>
+  <script src="backup.js?v=2026-11-14g"></script>
+  <script src="app.js?v=2026-11-14g"></script>
 </body>
 </html>

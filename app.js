@@ -143,8 +143,8 @@
     categoryDeleteYes: $('category-delete-yes'),
     categoryColorField: $('category-color-field'),
     categoryPreviewRow: $('category-preview-row'),
-    kindNew: $('kind-new'),
     kindNewName: $('kind-new-name'),
+    kindNewPage: $('kind-new-page'),
     kindNewError: $('kind-new-error'),
     kindManageBlock: $('kind-manage-block'),
     kindManage: $('kind-manage'),
@@ -827,7 +827,7 @@
     renderThingSelect();
 
     if (view.page === 'things') {
-      els.thingsEmpty.hidden = things.length > 0;
+      els.thingsEmpty.hidden = things.length > 0 || customKinds.length > 0;
       // Une rubrique par type d'objet (deux voitures, deux chiens…), dans
       // l'ordre des types ; chacune se replie.
       const tile = (thing) => {
@@ -852,12 +852,23 @@
       els.thingsGrid.replaceChildren(
         ...THING_KINDS.map((kind) => {
           const members = things.filter((thing) => kindOf(thing) === kind.id);
-          if (members.length === 0) return null;
+          // Une catégorie ajoutée reste visible, même vide, pour y ranger un objet.
+          const custom = customKinds.some((candidate) => candidate.id === kind.id);
+          if (members.length === 0 && !custom) return null;
           const section = el('section', 'group things-group');
           section.dataset.kind = kind.id;
           const list = el('ul', 'things-grid');
           list.id = 'things-' + kind.id;
           list.append(...members.map(tile));
+          if (members.length === 0) {
+            const item = el('li', 'things-empty-kind');
+            const add = el('button', 'btn btn-secondary thing-new');
+            add.type = 'button';
+            add.dataset.addKind = kind.id;
+            add.textContent = '+ Ajouter un objet';
+            item.append(el('span', 'hint', 'Aucun objet pour l\'instant.'), add);
+            list.append(item);
+          }
           section.append(foldTitle('kind-' + kind.id, kind.plural, members.length, list.id), list);
           return section;
         }).filter(Boolean)
@@ -1082,23 +1093,24 @@
     return THING_KINDS.some((kind) => kind.id === thing.kind) ? thing.kind : 'autre';
   }
 
+  // Liste des catégories d'objets : celles qui existent, puis « + Nouvelle
+  // catégorie… ».
+  const NEW_KIND = '\u0000nouvelle';
+
   function buildThingKinds() {
-    const checked = els.thingKinds.querySelector('input:checked');
-    const selected = checked ? checked.value : null;
+    const selected = els.thingKinds.value;
+    const option = (value, label) => {
+      const node = el('option', '', label);
+      node.value = value;
+      return node;
+    };
     els.thingKinds.replaceChildren(
-      ...THING_KINDS.map((kind) => {
-        const label = el('label', 'chip');
-        const input = el('input', 'visually-hidden');
-        input.type = 'radio';
-        input.name = 'thing-kind';
-        input.value = kind.id;
-        if (kind.id === selected) input.checked = true;
-        const icon = el('span', 'thing-icon');
-        icon.innerHTML = kind.icon;
-        label.append(input, icon, kind.label);
-        return label;
-      })
+      ...THING_KINDS.map((kind) => option(kind.id, kind.label)),
+      option(NEW_KIND, '+ Nouvelle catégorie…')
     );
+    if (selected && [...els.thingKinds.options].some((node) => node.value === selected)) {
+      els.thingKinds.value = selected;
+    }
   }
 
   // `thing` : l'objet à modifier, ou null pour en créer un.
@@ -1110,7 +1122,7 @@
     els.thingSave.textContent = thing ? 'Enregistrer' : "Créer l'objet";
     els.thingNameInput.value = thing ? thing.name : '';
     const kind = thing ? kindOf(thing) : view.page === 'things' && lastKind ? lastKind : 'appareil';
-    els.thingKinds.querySelector('input[value="' + kind + '"]').checked = true;
+    els.thingKinds.value = kind;
     showNewKind(false);
     els.thingDeleteZone.hidden = !thing;
     showThingDelete(false);
@@ -1120,13 +1132,12 @@
 
   let lastKind = null; // dernière catégorie choisie, proposée pour l'objet suivant
 
-  // « + Nouvelle » : un champ pour nommer une catégorie d'objets qui n'existe pas.
+  // « + Nouvelle catégorie… » : un champ pour nommer une catégorie d'objets
+  // qui n'existe pas.
   function showNewKind(open) {
     els.kindNewName.hidden = !open;
-    els.kindNew.hidden = open;
     setFieldError(els.kindNewError, els.kindNewName, false);
     if (open) {
-      for (const input of els.thingKinds.querySelectorAll('input')) input.checked = false;
       els.kindNewName.value = '';
       els.kindNewName.focus();
     }
@@ -1134,10 +1145,7 @@
 
   // La catégorie choisie, créée au besoin. Renvoie null si le nom manque.
   async function chosenKind() {
-    if (els.kindNewName.hidden) {
-      const checked = els.thingKinds.querySelector('input:checked');
-      return checked ? checked.value : 'autre';
-    }
+    if (els.thingKinds.value !== NEW_KIND) return els.thingKinds.value || 'autre';
     const label = els.kindNewName.value.trim().replace(/\s+/g, ' ').slice(0, 24);
     if (!label) return null;
     const existing = THING_KINDS.find(
@@ -1172,7 +1180,7 @@
       els.thingNameInput.focus();
       return;
     }
-    if (!els.kindNewName.hidden && !els.kindNewName.value.trim()) {
+    if (els.thingKinds.value === NEW_KIND && !els.kindNewName.value.trim()) {
       setFieldError(els.kindNewError, els.kindNewName, true);
       els.kindNewName.focus();
       return;
@@ -2785,14 +2793,21 @@
 
   // Une catégorie d'objets se renomme ou se supprime dans la même feuille,
   // sans couleur.
+  // `kind` : la catégorie d'objets à modifier, ou null pour en créer une.
   function openKindDialog(kind) {
     openCategoryDialog(kind, false);
-    els.categoryDialogTitle.textContent = "Modifier la catégorie d'objets";
+    categoryKindMode = true;
+    els.categoryDialogTitle.textContent = kind ? "Modifier la catégorie d'objets" : "Nouvelle catégorie d'objets";
+    els.categoryName.placeholder = 'Ex. : Chiens, Vélos, Enfants';
     els.categoryColorField.hidden = true;
     els.categoryPreviewRow.hidden = true;
   }
 
+  let categoryKindMode = false; // la feuille sert à une catégorie d'objets
+
   function openCategoryDialog(category, fromSheet) {
+    categoryKindMode = false;
+    els.categoryName.placeholder = 'Ex. : Voiture, Enfants, Travail';
     els.categoryColorField.hidden = false;
     els.categoryPreviewRow.hidden = false;
     categoryDialogFor = category;
@@ -2843,7 +2858,7 @@
       els.categoryName.focus();
       return;
     }
-    const isKind = Boolean(categoryDialogFor && categoryDialogFor.scope === 'thing');
+    const isKind = categoryKindMode;
     const existing = (isKind ? THING_KINDS : CATEGORIES).find(
       (category) => normalize(category.label) === normalize(label) && (!categoryDialogFor || category.id !== categoryDialogFor.id)
     );
@@ -2854,7 +2869,9 @@
       return;
     }
     const category = isKind
-      ? Object.assign({}, categoryDialogFor, { label })
+      ? categoryDialogFor
+        ? Object.assign({}, categoryDialogFor, { label })
+        : { id: 'k-' + newId(), label, scope: 'thing', createdAt: new Date().toISOString() }
       : categoryDialogFor
       ? Object.assign({}, categoryDialogFor, { label, color: chosenColor() })
       : { id: 'c-' + newId(), label, color: chosenColor(), createdAt: new Date().toISOString() };
@@ -3008,10 +3025,7 @@
     if (category) openCategoryDialog(category, false);
   });
   els.categoryForm.addEventListener('submit', saveCategory);
-  els.kindNew.addEventListener('click', () => showNewKind(true));
-  els.thingKinds.addEventListener('change', () => {
-    if (!els.kindNewName.hidden) showNewKind(false);
-  });
+  els.thingKinds.addEventListener('change', () => showNewKind(els.thingKinds.value === NEW_KIND));
   els.kindNewName.addEventListener('input', () => setFieldError(els.kindNewError, els.kindNewName, false));
   els.kindManage.addEventListener('click', (event) => {
     const button = event.target.closest('.category-manage-item');
@@ -3046,6 +3060,14 @@
     });
   }
   els.thingNew.addEventListener('click', () => openThingDialog(null));
+  els.kindNewPage.addEventListener('click', () => openKindDialog(null));
+  // « + Ajouter un objet » dans une catégorie vide : elle est déjà choisie.
+  els.thingsGrid.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-add-kind]');
+    if (!button) return;
+    openThingDialog(null);
+    els.thingKinds.value = button.dataset.addKind;
+  });
   els.thingEdit.addEventListener('click', () => openThingDialog(currentThing()));
   els.thingForm.addEventListener('submit', saveThing);
   els.thingNameInput.addEventListener('input', () => setFieldError(els.thingNameError, els.thingNameInput, false));

@@ -1150,25 +1150,34 @@ p {
 /* « Nouvel objet », en tête de la page des objets. */
 .thing-new {
   width: 100%;
-  margin-bottom: 12px;
   border-style: dashed;
 }
 
-/* Types d'objets : deux colonnes. */
-.chips.thing-kinds {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* « Nouvel objet » et « Nouvelle catégorie », côte à côte. */
+.things-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.things-actions .btn {
+  min-height: 48px;
+  padding: 0 6px;
+  font-size: 0.9375rem;
+}
+
+/* Une catégorie d'objets encore vide. */
+.things-empty-kind {
+  display: grid;
+  gap: 10px;
+  padding: 4px 4px 0;
 }
 
 /* Dans « ⋮ » : intertitre des catégories d'objets. */
 .kind-manage-title {
   margin: 14px 0 6px;
   font-weight: 600;
-}
-
-.thing-kinds .chip {
-  justify-content: flex-start;
-  gap: 10px;
-  padding: 0 14px;
 }
 
 /* Rattacher un papier existant. */
