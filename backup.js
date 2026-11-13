@@ -281,6 +281,7 @@ const Backup = (function () {
       exportedAt: now.toISOString(),
       papers: described,
       things: await PaperStore.listThings(),
+      categories: await PaperStore.listCategories(),
     };
     zip.add(MANIFEST, encoder.encode(JSON.stringify(manifest, null, 2)));
     return { blob: zip.finish(), name: fileName(now), count: described.length };
@@ -374,6 +375,25 @@ const Backup = (function () {
       );
       failure.name = 'BackupFormatError';
       throw failure;
+    }
+
+    // Les catégories personnelles : on ajoute celles qui manquent, avant les
+    // papiers qui s'y rangent.
+    categories = categories.slice();
+    if (Array.isArray(manifest.categories)) {
+      const knownCategories = new Set((await PaperStore.listCategories()).map((category) => category.id));
+      for (const raw of manifest.categories.slice(0, 200)) {
+        if (!raw || typeof raw !== 'object') continue;
+        const id = text(raw.id, 60);
+        const label = text(raw.label, 24).replace(/\s+/g, ' ');
+        const color = /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : '';
+        if (!/^c-[\w-]+$/.test(id) || !label || !color) continue;
+        if (!knownCategories.has(id)) {
+          await PaperStore.putCategory({ id, label, color, createdAt: instant(raw.createdAt) || new Date().toISOString() });
+          knownCategories.add(id);
+        }
+        if (!categories.includes(id)) categories.push(id);
+      }
     }
 
     // Les objets créés à la main : on ajoute ceux qui manquent.
