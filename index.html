@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-14d">
+  <link rel="stylesheet" href="style.css?v=2026-11-14e">
 </head>
 <body>
 
@@ -399,8 +399,16 @@
       </div>
       <form id="thing-form" class="paper-form" novalidate>
         <fieldset class="field">
-          <legend>Type</legend>
+          <legend class="visually-hidden">Catégorie de l'objet</legend>
+          <div class="field-head">
+            <span class="field-head-label" aria-hidden="true">Catégorie</span>
+            <button id="kind-new" class="link-button" type="button">+ Nouvelle</button>
+          </div>
           <div id="thing-kinds" class="chips thing-kinds"></div>
+          <input id="kind-new-name" type="text" maxlength="24" autocomplete="off" enterkeyhint="next" hidden
+                 placeholder="Nom de la catégorie : Chiens, Vélos…" aria-label="Nom de la nouvelle catégorie"
+                 aria-describedby="kind-new-error">
+          <p id="kind-new-error" class="field-error" hidden>Donner un nom à la catégorie.</p>
         </fieldset>
         <div class="field">
           <label for="thing-name-input">Nom</label>
@@ -439,7 +447,7 @@
                  placeholder="Ex. : Voiture, Enfants, Travail" aria-describedby="category-name-error">
           <p id="category-name-error" class="field-error" hidden>Donner un nom à la catégorie.</p>
         </div>
-        <fieldset class="field">
+        <fieldset id="category-color-field" class="field">
           <legend>Couleur</legend>
           <div id="category-colors" class="color-choice"></div>
           <label class="color-custom">
@@ -447,7 +455,7 @@
             <span>Autre couleur</span>
           </label>
         </fieldset>
-        <p class="category-preview-row"><span id="category-preview" class="tag"><span class="dot"></span><span id="category-preview-label">Aperçu</span></span></p>
+        <p id="category-preview-row" class="category-preview-row"><span id="category-preview" class="tag"><span class="dot"></span><span id="category-preview-label">Aperçu</span></span></p>
         <button id="category-save" class="btn btn-primary" type="submit">Créer la catégorie</button>
         <div id="category-delete-zone" class="delete-zone" hidden>
           <button id="category-delete" class="btn btn-danger-quiet" type="button">Supprimer la catégorie</button>
@@ -548,6 +556,10 @@
         <h3 id="categories-title" class="group-title">Catégories</h3>
         <ul id="category-manage" class="category-manage"></ul>
         <button id="category-new-settings" class="btn btn-secondary" type="button">Nouvelle catégorie</button>
+        <div id="kind-manage-block" hidden>
+          <p class="hint kind-manage-title">Catégories d'objets</p>
+          <ul id="kind-manage" class="category-manage"></ul>
+        </div>
       </section>
 
       <section aria-labelledby="theme-title">
@@ -581,9 +593,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-14d"></script>
-  <script src="reminders.js?v=2026-11-14d"></script>
-  <script src="backup.js?v=2026-11-14d"></script>
-  <script src="app.js?v=2026-11-14d"></script>
+  <script src="store.js?v=2026-11-14e"></script>
+  <script src="reminders.js?v=2026-11-14e"></script>
+  <script src="backup.js?v=2026-11-14e"></script>
+  <script src="app.js?v=2026-11-14e"></script>
 </body>
 </html>

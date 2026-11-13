@@ -88,7 +88,8 @@ la suivante.
 | 13. Papiers à conserver | Livrée, en attente de test |
 | 13 bis. Créer un objet sans papier, rattacher des papiers existants | Livrée (PR #15) |
 | 13 ter. Catégories personnelles, objet choisi dans une liste, papiers à conserver sans date | Livrée (PR #16) |
-| 13 quater. Groupes repliables, objets rangés par type | Livrée, en attente de test |
+| 13 quater. Groupes repliables, objets rangés par type | Livrée (PR #17) |
+| 13 quinquies. Catégories d'objets créées par l'utilisateur | Livrée, en attente de test |
 | 14. Nouvelle structure : « À faire », « Classeur », « Objets » | Proposée, à valider |
 
 ## Retours de l'utilisateur
@@ -448,6 +449,25 @@ téléphones, 2 chiens, il faudrait des catégories aux objets ») :
   papier, sans type choisi, est dans « Autres » ; « Modifier l'objet » lui en
   donne un.
 
+Étape 13 quinquies (14 novembre 2026, demandée par l'utilisateur : « quand
+on ajoute un nouvel objet, l'option de créer une catégorie qui n'existe pas,
+ou de l'affecter à une catégorie déjà existante ») :
+
+- **Le type d'un objet s'appelle désormais « Catégorie »**, comme
+  l'utilisateur le dit. Dans « Nouvel objet » et « Modifier l'objet » :
+  les catégories existantes, et « + Nouvelle » à droite, qui fait
+  apparaître un champ pour en nommer une (« Chiens », « Vélos »). Elle est
+  créée avec l'objet. Un nom qui existe déjà, au singulier ou au pluriel
+  (« Véhicules »), reprend la catégorie existante.
+- **La dernière catégorie choisie est proposée pour l'objet suivant**
+  (créer deux chiens d'affilée).
+- Sur la page « Objets », une catégorie ajoutée a sa rubrique, sous son nom
+  tel quel, avant « Autres ».
+- **Dans « ⋮ », rubrique « Catégories »**, une sous-liste « Catégories
+  d'objets » : toucher pour renommer ou supprimer (ses objets passent dans
+  « Autres »). Elles n'ont pas de couleur et ne sont jamais proposées pour un
+  papier.
+
 ## Structure proposée pour la suite (à valider)
 
 L'application n'est plus seulement une boîte à papiers : elle a des
@@ -556,6 +576,13 @@ l'utilisateur, avec une maquette avant.
   `CATEGORIES` dans `app.js` est désormais variable (base + personnelles).
   Sauvegarde : liste `categories` dans `mes-papiers.json`, restaurée avant
   les papiers.
+- **Catégories d'objets personnelles** : rangées dans la même table
+  `categories`, avec `scope: 'thing'`, un `id` en `k-…` et sans couleur ;
+  pas de montée de version. `app.js` les sépare à la lecture
+  (`setCustomCategories` → `setCustomKinds`) ; `THING_KINDS` est désormais
+  variable (base + personnelles, « Autre » en dernier). Un objet dont la
+  catégorie a disparu est rangé dans « Autres » (`kindOf`). Sauvegarde :
+  restaurées avec les catégories, avant les objets.
 - **Groupes repliables** : réglage de l'appareil `mes-papiers.replie`
   (`localStorage`), objet `{ "<page>:<groupe>": vrai/faux }`, par exemple
   `papers:done`, `thing:keep`, `things:kind-animal`. Types d'objets :

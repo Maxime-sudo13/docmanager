@@ -1159,6 +1159,12 @@ p {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Dans « ⋮ » : intertitre des catégories d'objets. */
+.kind-manage-title {
+  margin: 14px 0 6px;
+  font-weight: 600;
+}
+
 .thing-kinds .chip {
   justify-content: flex-start;
   gap: 10px;
