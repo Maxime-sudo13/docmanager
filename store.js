@@ -2,10 +2,12 @@
  * Accès aux données de « Mes papiers » : tout est enregistré dans IndexedDB,
  * sur l'appareil, et nulle part ailleurs.
  *
- * Deux tables :
+ * Trois tables :
  *   - « papers » : la fiche de chaque papier (champs + vignette) ;
  *   - « files »  : le fichier lui-même, rangé à part pour ne pas charger
- *                  toutes les photos en mémoire quand on affiche la liste.
+ *                  toutes les photos en mémoire quand on affiche la liste ;
+ *   - « things » : les objets créés à la main (voiture, logement, appareil),
+ *                  qui existent même avant d'avoir un papier (version 2).
  *
  * Les fichiers sont stockés sous forme d'ArrayBuffer plutôt que de Blob :
  * c'est la forme la mieux prise en charge par tous les navigateurs.
@@ -15,9 +17,10 @@ const PaperStore = (function () {
   'use strict';
 
   const DB_NAME = 'mes-papiers';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const PAPERS = 'papers';
   const FILES = 'files';
+  const THINGS = 'things';
 
   let dbPromise = null;
 
@@ -29,6 +32,8 @@ const PaperStore = (function () {
           const db = request.result;
           if (!db.objectStoreNames.contains(PAPERS)) db.createObjectStore(PAPERS, { keyPath: 'id' });
           if (!db.objectStoreNames.contains(FILES)) db.createObjectStore(FILES, { keyPath: 'id' });
+          // Version 2 : les objets. Rien à convertir, les papiers ne changent pas.
+          if (!db.objectStoreNames.contains(THINGS)) db.createObjectStore(THINGS, { keyPath: 'id' });
         };
         request.onsuccess = () => {
           const db = request.result;
@@ -205,6 +210,33 @@ const PaperStore = (function () {
         return () => request.result;
       });
       return record ? new Blob([record.data], { type: record.type }) : null;
+    },
+
+    /*
+     * Objets créés à la main : { id, name, kind, createdAt }. Un papier est
+     * rattaché à un objet par son nom (champ `thing` de la fiche).
+     */
+
+    /** Tous les objets. */
+    async listThings() {
+      return transaction(THINGS, 'readonly', (tx) => {
+        const request = tx.objectStore(THINGS).getAll();
+        return () => request.result;
+      });
+    },
+
+    /** Crée ou remplace un objet. */
+    async putThing(thing) {
+      await transaction(THINGS, 'readwrite', (tx) => {
+        tx.objectStore(THINGS).put(Object.assign({}, thing));
+      });
+    },
+
+    /** Supprime un objet (ses papiers ne sont pas touchés). */
+    async removeThing(id) {
+      await transaction(THINGS, 'readwrite', (tx) => {
+        tx.objectStore(THINGS).delete(id);
+      });
     },
 
     /**

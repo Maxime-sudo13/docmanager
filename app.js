@@ -54,6 +54,19 @@
   const THING_ICON =
     '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.6V5a1.5 1.5 0 0 1 1.5-1.5h7.6l8 8a1.5 1.5 0 0 1 0 2.1l-7.5 7.5a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.4"/></svg>';
 
+  // Types d'objets, avec leur dessin.
+  const THING_KINDS = [
+    { id: 'vehicule', label: 'Véhicule', icon: ICON('<path d="M4 16.5V12l2-5h12l2 5v4.5M4 12h16"/><path d="M4 16.5h16v2H4z"/><circle cx="7.5" cy="14.5" r="0.6"/><circle cx="16.5" cy="14.5" r="0.6"/>') },
+    { id: 'logement', label: 'Logement', icon: CATEGORY_ICONS.logement },
+    { id: 'appareil', label: 'Appareil', icon: ICON('<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>') },
+    { id: 'autre', label: 'Autre', icon: THING_ICON },
+  ];
+
+  function kindIcon(kind) {
+    const found = THING_KINDS.find((candidate) => candidate.id === kind);
+    return found ? found.icon : THING_ICON;
+  }
+
   const CHECK_ICON =
     '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -70,6 +83,14 @@
     sumTodo: $('sum-todo'),
     sumRegular: $('sum-regular'),
     sumRegularTotal: $('sum-regular-total'),
+    keepSection: $('keep-section'),
+    keepCount: $('keep-count'),
+    keepList: $('keep-list'),
+    kindChoice: $('kind-choice'),
+    kindHint: $('kind-hint'),
+    dueLabel: $('due-label'),
+    repeatField: $('repeat-field'),
+    pageAdd: $('page-add'),
     autoSection: $('auto-section'),
     autoCount: $('auto-count'),
     autoList: $('auto-list'),
@@ -99,11 +120,27 @@
     thingCard: $('thing-card'),
     thingName: $('thing-name'),
     thingStats: $('thing-stats'),
-    thingRename: $('thing-rename'),
-    thingRenameInput: $('thing-rename-input'),
-    thingRenameCancel: $('thing-rename-cancel'),
-    thingRenameButton: $('thing-rename-button'),
-    thingActions: $('thing-actions'),
+    thingNew: $('thing-new'),
+    thingEdit: $('thing-edit'),
+    thingAttach: $('thing-attach'),
+    thingEmpty: $('thing-empty'),
+    thingDialog: $('thing-dialog'),
+    thingDialogTitle: $('thing-dialog-title'),
+    thingForm: $('thing-form'),
+    thingKinds: $('thing-kinds'),
+    thingNameInput: $('thing-name-input'),
+    thingNameError: $('thing-name-error'),
+    thingSave: $('thing-save'),
+    thingDeleteZone: $('thing-delete-zone'),
+    thingDelete: $('thing-delete'),
+    thingDeleteConfirm: $('thing-delete-confirm'),
+    thingDeleteText: $('thing-delete-text'),
+    thingDeleteCancel: $('thing-delete-cancel'),
+    thingDeleteYes: $('thing-delete-yes'),
+    attachDialog: $('attach-dialog'),
+    attachSearch: $('attach-search'),
+    attachList: $('attach-list'),
+    attachEmpty: $('attach-empty'),
     categoryField: $('category-chips').closest('fieldset'),
     dueRequiredError: $('due-required-error'),
     sideNav: $('side-nav'),
@@ -203,7 +240,9 @@
   // Sur la page des papiers : recherche, catégorie, et `regular` pour ne
   // garder que les échéances qui reviennent.
   const view = { page: 'papers', query: '', category: 'all', regular: false, thing: '' };
-  let things = [];                    // objets : [{ key, name, papers }], par nom
+  let things = [];                    // objets : [{ key, name, kind, record, papers }], par nom
+  let storedThings = [];              // objets créés à la main (table « things »)
+  let thingDialogFor = null;          // objet modifié dans la feuille, ou null pour un nouvel objet
   // Feuille ouverte : { mode: 'add', file, fileUrl } pour un nouveau papier,
   // { mode: 'edit', paper, fileUrl } pour un papier existant, sinon null.
   let sheet = null;
@@ -258,6 +297,11 @@
     return paper.repeat > 0 && Boolean(paper.dueDate);
   }
 
+  // Un papier à garder, sans rien à faire (carte grise, contrat, garantie).
+  function isKept(paper) {
+    return !paper.done && Boolean(paper.keep);
+  }
+
   function isAutoPaid(paper) {
     return !paper.done && isRegular(paper) && Boolean(paper.autoPay);
   }
@@ -288,6 +332,12 @@
     if (paper.done) return { text: 'Date limite : ' + day, level: '' };
     if (isAutoPaid(paper)) return { text: 'Prochain prélèvement : ' + day, level: '' };
     const days = Reminders.daysUntil(paper.dueDate);
+    // Papier à conserver : sa date est une fin de validité.
+    if (paper.keep) {
+      if (days < 0) return { text: 'Expiré · ' + day, level: 'late' };
+      if (days <= Reminders.WEEK_DAYS) return { text: 'Expire ' + (days === 0 ? "aujourd'hui" : days === 1 ? 'demain' : 'dans ' + days + ' jours') + ' · ' + day, level: 'soon' };
+      return { text: "Valable jusqu'au " + day, level: '' };
+    }
     if (days < 0) return { text: 'En retard · ' + day, level: 'late' };
     if (days === 0) return { text: "Aujourd'hui", level: 'soon' };
     if (days === 1) return { text: 'Demain · ' + day, level: 'soon' };
@@ -349,6 +399,11 @@
   // Les objets, chacun sous le nom le plus souvent écrit.
   function collectThings() {
     const groups = new Map();
+    // Les objets créés à la main existent même sans papier.
+    for (const record of storedThings) {
+      const key = thingKey(record.name);
+      if (key && !groups.has(key)) groups.set(key, { key, papers: [], spellings: new Map(), record });
+    }
     for (const paper of papers) {
       const key = thingKey(paper.thing);
       if (!key) continue;
@@ -366,7 +421,9 @@
       .map((group) => ({
         key: group.key,
         papers: group.papers,
-        name: [...group.spellings].sort(best)[0][0],
+        record: group.record || null,
+        kind: group.record ? group.record.kind : 'autre',
+        name: group.record ? group.record.name : [...group.spellings].sort(best)[0][0],
       }))
       .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
   }
@@ -386,6 +443,7 @@
         isRegular(paper) ? REPEATS[paper.repeat] || '' : '',
         isAutoPaid(paper) ? 'prélèvement automatique' : '',
         paper.thing || '',
+        paper.keep ? 'à conserver' : '',
       ].join(' ')
     );
   }
@@ -409,6 +467,11 @@
     if (a.dueDate) return -1;
     if (b.dueDate) return 1;
     return b.createdAt.localeCompare(a.createdAt);
+  }
+
+  // À conserver : par organisme, comme on range un classeur.
+  function compareKeep(a, b) {
+    return a.organisation.localeCompare(b.organisation, 'fr') || b.createdAt.localeCompare(a.createdAt);
   }
 
   // Traités : le dernier traité d'abord.
@@ -509,7 +572,7 @@
       block.classList.add('cal-none');
       const icon = el('span', 'cal-icon');
       icon.innerHTML = CATEGORY_ICONS[paper.category] || CATEGORY_ICONS.autre;
-      block.append(el('span', 'cal-m', 'Sans date'), icon);
+      block.append(el('span', 'cal-m', paper.keep && !paper.done ? 'Gardé' : 'Sans date'), icon);
       return block;
     }
     if (due && due.level === 'late') block.classList.add('cal-late');
@@ -575,7 +638,7 @@
     done.append(check);
 
     // Un prélèvement automatique n'attend aucun geste : pas de rond « traité ».
-    if (isAutoPaid(paper)) item.append(open);
+    if (isAutoPaid(paper) || isKept(paper)) item.append(open);
     else item.append(open, done);
     return item;
   }
@@ -742,7 +805,9 @@
             if (stats.next.level) next.dataset.level = stats.next.level;
             text.append(next);
           }
-          button.append(icon(), text, el('span', 'thing-tile-arrow', '›'));
+          const kind = el('span', 'thing-icon');
+          kind.innerHTML = kindIcon(thing.kind);
+          button.append(kind, text, el('span', 'thing-tile-arrow', '›'));
           item.append(button);
           return item;
         })
@@ -761,7 +826,10 @@
       if (typeof paper.amount === 'number') cents += paper.amount * (1 + (paper.history || []).length);
       if (!paper.done && paper.dueDate && (!next || paper.dueDate < next.dueDate)) next = paper;
     }
-    const parts = [thing.papers.length + (thing.papers.length > 1 ? ' papiers' : ' papier')];
+    const count = thing.papers.length;
+    const parts = [count === 0 ? 'Aucun papier' : count + (count > 1 ? ' papiers' : ' papier')];
+    const kept = thing.papers.filter(isKept).length;
+    if (kept > 0) parts.push(kept + ' à conserver');
     if (cents > 0) parts.push(formatAmount(cents) + ' en tout');
     let nextInfo = null;
     if (next) {
@@ -779,6 +847,7 @@
     els.thingCard.hidden = !thing;
     if (!thing) return;
     els.thingName.textContent = thing.name;
+    els.thingEmpty.hidden = thing.papers.length > 0;
     const stats = thingStats(thing);
     els.thingStats.textContent = stats.next ? stats.summary + ' · ' + stats.next.text.split(' · ')[0].toLowerCase() : stats.summary;
   }
@@ -807,7 +876,6 @@
   function goTo(page, key) {
     if (view.page === page && view.thing === (key || '')) return;
     setRoute(page, key || '', false);
-    closeRename();
     // Sur ordinateur, la fiche ouverte à droite appartient à la page quittée.
     if (els.dialog.classList.contains('as-panel')) closeSheet();
     render();
@@ -840,7 +908,6 @@
       return;
     }
     readRoute();
-    closeRename();
     render();
   }
 
@@ -850,6 +917,10 @@
     els.tabPapers.setAttribute('aria-pressed', String(papersPage));
     els.tabThings.setAttribute('aria-pressed', String(!papersPage));
     els.thingsPage.hidden = view.page !== 'things';
+    // Sur la page d'un objet, ses papiers à conserver (carte grise, contrat…)
+    // passent en tête ; ailleurs, ce qui est à faire d'abord.
+    if (view.page === 'thing') els.todoSection.before(els.keepSection);
+    else els.doneSection.before(els.keepSection);
     if (!papersPage) {
       els.summary.hidden = true;
       els.backupReminder.hidden = true;
@@ -859,37 +930,167 @@
     }
   }
 
-  // Renommer un objet : tous ses papiers changent de nom d'objet.
-  function openRename() {
-    const thing = things.find((candidate) => candidate.key === view.thing);
-    if (!thing) return;
-    els.thingRenameInput.value = thing.name;
-    els.thingRename.hidden = false;
-    els.thingActions.hidden = true;
-    els.thingRenameInput.focus();
-    els.thingRenameInput.select();
+  /* ---------- Objets : création, modification, rattachement ---------- */
+
+  function currentThing() {
+    return view.page === 'thing' ? things.find((candidate) => candidate.key === view.thing) || null : null;
   }
 
-  function closeRename() {
-    els.thingRename.hidden = true;
-    els.thingActions.hidden = false;
+  function buildThingKinds() {
+    els.thingKinds.replaceChildren(
+      ...THING_KINDS.map((kind) => {
+        const label = el('label', 'chip');
+        const input = el('input', 'visually-hidden');
+        input.type = 'radio';
+        input.name = 'thing-kind';
+        input.value = kind.id;
+        const icon = el('span', 'thing-icon');
+        icon.innerHTML = kind.icon;
+        label.append(input, icon, kind.label);
+        return label;
+      })
+    );
   }
 
-  async function renameThing(event) {
+  // `thing` : l'objet à modifier, ou null pour en créer un.
+  function openThingDialog(thing) {
+    thingDialogFor = thing;
+    els.thingForm.reset();
+    setFieldError(els.thingNameError, els.thingNameInput, false);
+    els.thingDialogTitle.textContent = thing ? "Modifier l'objet" : 'Nouvel objet';
+    els.thingSave.textContent = thing ? 'Enregistrer' : "Créer l'objet";
+    els.thingNameInput.value = thing ? thing.name : '';
+    const kind = thing ? thing.kind : 'appareil';
+    els.thingKinds.querySelector('input[value="' + kind + '"]').checked = true;
+    els.thingDeleteZone.hidden = !thing;
+    showThingDelete(false);
+    els.thingDialog.showModal();
+    if (!thing) els.thingNameInput.focus();
+  }
+
+  function showThingDelete(visible) {
+    els.thingDeleteConfirm.hidden = !visible;
+    els.thingDelete.hidden = visible;
+    if (visible && thingDialogFor) {
+      const count = thingDialogFor.papers.length;
+      els.thingDeleteText.textContent =
+        count === 0
+          ? 'Supprimer « ' + thingDialogFor.name + ' » ?'
+          : 'Supprimer « ' + thingDialogFor.name + ' » ? ' +
+            (count > 1 ? 'Ses ' + count + ' papiers restent' : 'Son papier reste') +
+            " dans l'application, sans objet.";
+      els.thingDeleteCancel.focus();
+    }
+  }
+
+  async function saveThing(event) {
     event.preventDefault();
-    const thing = things.find((candidate) => candidate.key === view.thing);
-    const name = cleanThing(els.thingRenameInput.value);
-    if (!thing || !name) {
-      els.thingRenameInput.focus();
+    const name = cleanThing(els.thingNameInput.value);
+    setFieldError(els.thingNameError, els.thingNameInput, !name);
+    if (!name) {
+      els.thingNameInput.focus();
       return;
     }
+    const kind = els.thingKinds.querySelector('input:checked').value;
+    const key = thingKey(name);
+    const now = new Date().toISOString();
+    const editing = thingDialogFor;
+    try {
+      if (!editing) {
+        const existing = things.find((thing) => thing.key === key);
+        if (!existing) await PaperStore.putThing({ id: newId(), name, kind, createdAt: now });
+        els.thingDialog.close();
+        await refresh();
+        goTo('thing', key);
+        if (existing) showToast('« ' + existing.name + ' » existe déjà : le voici.');
+        return;
+      }
+      // Même nom qu'un autre objet : les deux se rejoignent sous celui-ci.
+      const other = things.find((thing) => thing.key === key && thing !== editing);
+      if (other && other.record) await PaperStore.removeThing(other.record.id);
+      await PaperStore.putThing({
+        id: editing.record ? editing.record.id : newId(),
+        name,
+        kind,
+        createdAt: editing.record ? editing.record.createdAt : now,
+      });
+      for (const paper of editing.papers) {
+        if (paper.thing !== name) await PaperStore.update(paper.id, { thing: name, updatedAt: now });
+      }
+      els.thingDialog.close();
+      setRoute('thing', key, true);
+      await refresh();
+      showToast('Objet enregistré.');
+    } catch (error) {
+      console.error(error);
+      showToast("Le changement n'a pas pu être enregistré.");
+    }
+  }
+
+  async function deleteThing() {
+    const thing = thingDialogFor;
+    if (!thing) return;
     try {
       const now = new Date().toISOString();
-      for (const paper of thing.papers) await PaperStore.update(paper.id, { thing: name, updatedAt: now });
-      setRoute('thing', thingKey(name), true);
-      closeRename();
+      if (thing.record) await PaperStore.removeThing(thing.record.id);
+      for (const paper of thing.papers) await PaperStore.update(paper.id, { thing: '', updatedAt: now });
+      els.thingDialog.close();
+      setRoute('things', '', true);
       await refresh();
-      showToast('Objet renommé « ' + name + ' ».');
+      showToast('« ' + thing.name + ' » est supprimé.');
+    } catch (error) {
+      console.error(error);
+      showToast("La suppression a échoué.");
+    }
+  }
+
+  // Rattacher des papiers déjà enregistrés à l'objet affiché.
+  function openAttach() {
+    if (!currentThing()) return;
+    els.attachSearch.value = '';
+    renderAttach();
+    els.attachDialog.showModal();
+  }
+
+  function renderAttach() {
+    const thing = currentThing();
+    if (!thing) return;
+    const words = normalize(els.attachSearch.value).split(/\s+/).filter(Boolean);
+    const candidates = papers
+      .filter((paper) => thingKey(paper.thing) !== thing.key)
+      .filter((paper) => words.every((word) => (searchTexts.get(paper.id) || '').includes(word)))
+      .sort((a, b) => Number(a.done) - Number(b.done) || a.organisation.localeCompare(b.organisation, 'fr'));
+    els.attachEmpty.hidden = candidates.length > 0;
+    els.attachEmpty.textContent = words.length ? 'Aucun papier ne correspond.' : 'Aucun autre papier à rattacher.';
+    els.attachList.replaceChildren(
+      ...candidates.map((paper) => {
+        const item = el('li');
+        const button = el('button', 'attach-item');
+        button.type = 'button';
+        button.dataset.id = paper.id;
+        button.dataset.category = paper.category;
+        const meta = el('span', 'attach-meta');
+        meta.append(categoryTag(paper.category));
+        if (paper.thing) meta.append(el('span', '', 'dans « ' + paper.thing + ' »'));
+        if (paper.done) meta.append(el('span', '', 'traité'));
+        const text = el('span', 'attach-text');
+        text.append(el('span', 'attach-title', paper.organisation), meta);
+        button.append(text, el('span', 'attach-plus', 'Rattacher'));
+        item.append(button);
+        return item;
+      })
+    );
+  }
+
+  async function attachPaper(id) {
+    const thing = currentThing();
+    const paper = papers.find((candidate) => candidate.id === id);
+    if (!thing || !paper) return;
+    try {
+      await PaperStore.update(id, { thing: thing.name, updatedAt: new Date().toISOString() });
+      await refresh();
+      renderAttach();
+      showToast('« ' + paper.organisation + ' » est rattaché à ' + thing.name + '.');
     } catch (error) {
       console.error(error);
       showToast("Le changement n'a pas pu être enregistré.");
@@ -914,18 +1115,22 @@
     const visible = papers.filter(matchesView);
     const todo = visible.filter(Reminders.needsAction).sort(compareTodo);
     const auto = visible.filter(isAutoPaid).sort(compareTodo);
+    const keep = visible.filter(isKept).sort(compareKeep);
     const done = visible.filter((paper) => paper.done).sort(compareDone);
 
     els.todoSection.hidden = todo.length === 0;
     els.autoSection.hidden = auto.length === 0;
+    els.keepSection.hidden = keep.length === 0;
     els.doneSection.hidden = done.length === 0;
     // S'il n'y a que des papiers à traiter, l'intertitre « À traiter » est inutile.
     els.todoTitle.hidden = pending === total;
     els.todoCount.textContent = todo.length;
     els.autoCount.textContent = auto.length;
+    els.keepCount.textContent = keep.length;
     els.doneCount.textContent = done.length;
     els.todoList.replaceChildren(...todo.map(renderPaper));
     els.autoList.replaceChildren(...auto.map(renderPaper));
+    els.keepList.replaceChildren(...keep.map(renderPaper));
     els.doneList.replaceChildren(...done.map(renderPaper));
     els.noResult.hidden = total === 0 || visible.length > 0;
     renderPage();
@@ -960,6 +1165,7 @@
   async function refresh() {
     papers = await PaperStore.list();
     if (await rollAutoPayments(papers)) papers = await PaperStore.list();
+    storedThings = await PaperStore.listThings();
 
     searchTexts.clear();
     for (const paper of papers) searchTexts.set(paper.id, buildSearchText(paper));
@@ -1085,7 +1291,9 @@
     }
     const name = '« ' + (extraFields ? extraFields.organisation : paper.organisation) + ' »';
     showToast(
-      done ? name + ' est traité.' : name + ' est remis à traiter.',
+      merged.keep
+        ? done ? name + ' est archivé.' : name + ' est de nouveau à conserver.'
+        : done ? name + ' est traité.' : name + ' est remis à traiter.',
       () => saveDone(paper, !done, null, false).catch(reportDoneError),
       'Annuler'
     );
@@ -1715,7 +1923,18 @@
 
   // « Rappels 7 jours avant et la veille », sous la date limite, dès qu'une
   // date est saisie pour un papier à traiter.
+  function isKeepChosen() {
+    const checked = els.kindChoice.querySelector('input:checked');
+    return Boolean(checked && checked.value === 'keep');
+  }
+
   function renderReminderRow() {
+    const keep = isKeepChosen();
+    // À conserver : la date devient une fin de validité, et rien ne revient.
+    els.kindHint.hidden = !keep;
+    els.dueLabel.textContent = keep ? "Valable jusqu'au" : 'Date limite';
+    els.repeatField.hidden = keep;
+    if (keep) els.repeat.value = '0';
     const repeat = Number(els.repeat.value) || 0;
     const autoPay = repeat > 0 && els.autopay.checked;
     els.autopayRow.hidden = repeat === 0;
@@ -1729,6 +1948,8 @@
     } else if (repeat > 0) {
       els.reminderRow.textContent =
         'Rappels 7 jours avant et la veille. Une fois traitée, la date passe à l\'échéance suivante.';
+    } else if (keep) {
+      els.reminderRow.textContent = 'Rappels 7 jours avant la fin et la veille.';
     } else {
       els.reminderRow.textContent = 'Rappels 7 jours avant et la veille.';
     }
@@ -1751,7 +1972,9 @@
     const repeat = Number(els.repeat.value) || 0;
     let label = 'Marquer comme traité';
     if (paper.done) {
-      label = 'Remettre à traiter';
+      label = isKeepChosen() ? 'Remettre parmi les papiers à conserver' : 'Remettre à traiter';
+    } else if (isKeepChosen()) {
+      label = 'Ne plus conserver (archiver)';
     } else if (repeat > 0 && els.autopay.checked) {
       label = 'Arrêter : ne revient plus';
     } else if (repeat > 0) {
@@ -1769,7 +1992,8 @@
     // avec document, elle s'ouvre en bas, sous « + Note ».
     if (on) els.form.insertBefore(els.noteField, els.categoryField);
     else els.moreRow.after(els.noteField);
-    els.pagesBlock.hidden = on;
+    els.pageAdd.hidden = on;
+    renderPagesBlock();
     els.noteOptional.hidden = on;
     showNoteField(on || els.note.value.trim() !== '');
     if (on) {
@@ -1908,6 +2132,7 @@
     els.amount.value = amountForInput(paper.amount);
     els.repeat.value = String(REPEATS[paper.repeat] ? paper.repeat : 0);
     els.autopay.checked = Boolean(paper.autoPay);
+    els.kindChoice.querySelector('input[value="' + (paper.keep ? 'keep' : 'todo') + '"]').checked = true;
     showMoney(typeof paper.amount === 'number' || els.repeat.value !== '0');
     els.thing.value = paper.thing || '';
     showThing(Boolean(paper.thing));
@@ -1978,7 +2203,8 @@
 
     const amount = parseAmount(els.amount.value);
     const amountInvalid = Number.isNaN(amount);
-    const repeat = REPEATS[els.repeat.value] ? Number(els.repeat.value) : 0;
+    const keep = isKeepChosen();
+    const repeat = !keep && REPEATS[els.repeat.value] ? Number(els.repeat.value) : 0;
     // Une échéance qui revient a forcément une date.
     const dueMissing = repeat > 0 && dueValue === '' && !dueIncomplete;
     setFieldError(els.amountError, els.amount, amountInvalid);
@@ -2027,6 +2253,7 @@
       repeatDay: repeat > 0 ? repeatDayFor(dueValue) : null,
       autoPay: repeat > 0 && els.autopay.checked,
       thing: cleanThing(els.thing.value),
+      keep,
     };
     if (reminded) fields.reminded = reminded;
     return fields;
@@ -2141,8 +2368,14 @@
   // Les pages en plus de la première : celles déjà enregistrées (`key`) et
   // celles ajoutées dans la feuille (`isNew`), enregistrées avec « Ajouter » ou
   // « Enregistrer ». Une page retirée l'est aussi à l'enregistrement.
+  // La rangée des pages n'apparaît que s'il y en a.
+  function renderPagesBlock() {
+    els.pagesBlock.hidden = !sheet || sheet.noteOnly || sheet.pages.length === 0;
+  }
+
   function renderPages() {
     const pages = sheet ? sheet.pages : [];
+    renderPagesBlock();
     els.pagesList.replaceChildren(
       ...pages.map((page, index) => {
         const number = index + 2;
@@ -2235,6 +2468,7 @@
   }
 
   buildCategoryChips();
+  buildThingKinds();
   applyTheme(savedTheme());
   document.getElementById('theme-choice').addEventListener('change', (event) => {
     if (event.target.name === 'theme') chooseTheme(event.target.value);
@@ -2311,6 +2545,7 @@
     renderReminderRow();
   });
   els.autopay.addEventListener('change', renderReminderRow);
+  els.kindChoice.addEventListener('change', renderReminderRow);
   els.thingToggle.addEventListener('click', () => {
     showThing(true);
     els.thing.focus();
@@ -2326,9 +2561,24 @@
       if (button) goTo('thing', button.dataset.thing);
     });
   }
-  els.thingRenameButton.addEventListener('click', openRename);
-  els.thingRenameCancel.addEventListener('click', closeRename);
-  els.thingRename.addEventListener('submit', renameThing);
+  els.thingNew.addEventListener('click', () => openThingDialog(null));
+  els.thingEdit.addEventListener('click', () => openThingDialog(currentThing()));
+  els.thingForm.addEventListener('submit', saveThing);
+  els.thingNameInput.addEventListener('input', () => setFieldError(els.thingNameError, els.thingNameInput, false));
+  els.thingDelete.addEventListener('click', () => showThingDelete(true));
+  els.thingDeleteCancel.addEventListener('click', () => showThingDelete(false));
+  els.thingDeleteYes.addEventListener('click', deleteThing);
+  els.thingAttach.addEventListener('click', openAttach);
+  els.attachSearch.addEventListener('input', renderAttach);
+  els.attachList.addEventListener('click', (event) => {
+    const button = event.target.closest('.attach-item');
+    if (button) attachPaper(button.dataset.id);
+  });
+  for (const dialog of [els.thingDialog, els.attachDialog]) {
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog || event.target.closest('[data-close]')) dialog.close();
+    });
+  }
   els.moneyToggle.addEventListener('click', () => {
     showMoney(true);
     els.amount.focus();

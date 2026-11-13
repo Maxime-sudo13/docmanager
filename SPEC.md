@@ -83,7 +83,10 @@ la suivante.
 | 9. Notes : écrire ou dicter, avec ou sans document | Livrée, en attente de test |
 | 10. Repérer seul dates et actions dans une note | À faire, plus tard (idée 3 de l'analyse du 13 novembre) |
 | 11. Échéances qui reviennent et montants | Livrée, en attente de test |
-| 12. Objets (voiture, logement, appareils) | Livrée, en attente de test |
+| 12. Objets (voiture, logement, appareils) | Livrée (page à part depuis la PR #14) |
+| 13. Papiers à conserver | Livrée, en attente de test |
+| 13 bis. Créer un objet sans papier, rattacher des papiers existants | Livrée, en attente de test |
+| 14. Nouvelle structure : « À faire », « Classeur », « Objets » | Proposée, à valider |
 
 ## Retours de l'utilisateur
 
@@ -364,6 +367,62 @@ objets.
 - Vider le champ retire le papier de l'objet ; un objet sans papier disparaît
   (retour à la page « Objets »).
 
+Étape 13 (14 novembre 2026, demandée par l'utilisateur : « une section
+papiers à conserver pour chaque objet ») :
+
+- **Un papier est « À traiter » ou « À conserver »**, au choix en haut de la
+  fiche (deux boutons côte à côte, « À traiter » par défaut). À conserver :
+  carte grise, contrat, garantie, diplôme… Rien à faire, donc pas de rond
+  « traité », pas de place dans les trois cases du résumé, pas de « Revient ».
+- **Sa date devient « Valable jusqu'au »**, facultative : un passeport, une
+  garantie. Elle garde les rappels 7 jours avant et la veille, et la liste dit
+  « Expire dans 5 jours » ou « Expiré ».
+- **Un groupe « À conserver »** dans la liste, rangé par organisme comme un
+  classeur. Sur la page d'un objet, il passe **en tête** (la carte grise avant
+  les factures) ; la carte de l'objet dit « 1 à conserver ».
+- **« Ne plus conserver (archiver) »** dans la fiche le range dans les
+  traités ; « Annuler » le remet.
+- **« + Page » passe à côté de la légende de l'aperçu** (« Image · 366 Ko »),
+  en plus petit, et la rangée des pages n'apparaît que s'il y en a : c'est la
+  place qu'il fallait pour le choix « À traiter / À conserver » sans que
+  « Ajouter » sorte de l'écran du téléphone.
+- Les papiers déjà enregistrés restent « À traiter ».
+
+Étape 13 bis (14 novembre 2026, demandée par l'utilisateur : « ajouter un
+objet comme j'ai acheté un nouveau téléphone, je veux mettre la facture dans
+cet objet-là, plus mon abonnement ou mon assurance ») :
+
+- **« Nouvel objet »** en tête de la page « Objets » : un type (Véhicule,
+  Logement, Appareil, Autre ; Appareil par défaut) et un nom. L'objet existe
+  aussitôt, sans papier, et sa page s'ouvre : « Aucun papier pour
+  l'instant… ». Le type donne le dessin de sa carte.
+- **« Rattacher un papier existant »** sur la page d'un objet : la liste des
+  autres papiers (avec recherche), un toucher rattache. Un papier déjà dans un
+  autre objet y est signalé et change d'objet.
+- **« Modifier l'objet »** remplace « Renommer » : nom et type, et
+  « Supprimer l'objet » (ses papiers restent, sans objet). Créer un objet qui
+  existe déjà ouvre celui qui existe.
+- « Ajouter un papier » depuis la page d'un objet lui rattache toujours le
+  nouveau papier.
+
+## Structure proposée pour la suite (à valider)
+
+L'application n'est plus seulement une boîte à papiers : elle a des
+échéances, des abonnements, des objets et des papiers à garder. La page
+« Papiers » empile maintenant tout (résumé, total, rappel de sauvegarde,
+recherche, catégories, quatre groupes). Proposition, en trois onglets :
+
+1. **« À faire »** (l'accueil) : les trois cases, les dépenses régulières,
+   ce qui est à traiter et les prélèvements. Ce qui bouge, rien d'autre.
+2. **« Classeur »** : tous les papiers, avec la recherche et les catégories ;
+   les papiers à conserver d'abord, puis les archives (traités).
+3. **« Objets »** : comme aujourd'hui.
+
+Le bouton « Ajouter » ouvrirait la fiche réglée selon l'onglet (« À
+conserver » depuis le Classeur, objet rempli depuis un objet). Pas de
+changement dans les données. À faire seulement après accord de
+l'utilisateur, avec une maquette avant.
+
 ## Ce qu'il reste pour la mise en ligne
 
 1. **Historique nettoyé, fait le 12 novembre 2026.** L'adresse personnelle de
@@ -431,6 +490,18 @@ objets.
   (`view.thing` = clé de l'objet), lue dans l'adresse par `readRoute()` et
   changée par `goTo()` (historique du navigateur). Sauvegardé et revérifié à
   la restauration.
+- **Papiers à conserver (étape 13)** : champ `keep` (booléen). Dans
+  `reminders.js`, `needsAction()` (résumé, « À traiter ») exclut les papiers
+  à conserver ; `remindable()` (rappels) les garde. Un papier à conserver n'a
+  jamais `repeat` (forcé à 0 à l'enregistrement et à la restauration).
+- **Objets créés à la main (étape 13 bis)** : la base passe en **version 2**,
+  avec une troisième table `things` `{ id, name, kind, createdAt }`, `kind`
+  parmi `vehicule`, `logement`, `appareil`, `autre`. La montée de version ne
+  touche à rien d'autre. Un papier reste rattaché par son nom (`thing`) ; un
+  objet est la réunion des fiches `things` et des noms portés par les papiers
+  (`collectThings`), la fiche donnant le nom et le type. `PaperStore` :
+  `listThings`, `putThing`, `removeThing`. Sauvegarde : liste `things` dans
+  `mes-papiers.json` (format toujours en version 1, champ ajouté).
 - **`icons/chevron.svg`** : la flèche de la liste « Revient » (une image, la
   règle de sécurité interdisant les images `data:`).
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la
@@ -461,7 +532,8 @@ objets.
 - **`store.js` est la seule porte d'accès aux données.** Interface asynchrone :
   `PaperStore.list()`, `add(paper, file)`, `update(id, changes)`, `remove(id)`,
   `getFile(id)`, `requestPersistence()`. `app.js` ne touche jamais à IndexedDB.
-- **Base IndexedDB `mes-papiers`, version 1, deux tables** indexées par `id` :
+- **Base IndexedDB `mes-papiers`, version 2 (trois tables depuis l'étape 13
+  bis, voir plus haut)** ; les deux premières, indexées par `id` :
   - `papers` : la fiche `{ id, category, organisation, dueDate, done, doneAt,
     reminded, fileName, type, size, createdAt, updatedAt, thumbnail }`, plus
     `note`, `noFile`, `extraPages` et les champs de l'étape 11 ;

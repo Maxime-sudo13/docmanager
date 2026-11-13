@@ -966,7 +966,101 @@ p {
 
 .thing-actions {
   display: flex;
-  margin: 0 -8px -6px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-top: 8px;
+}
+
+.thing-actions .btn {
+  min-height: 44px;
+  padding: 0 16px;
+}
+
+.thing-empty {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+/* « Nouvel objet », en tête de la page des objets. */
+.thing-new {
+  width: 100%;
+  margin-bottom: 12px;
+  border-style: dashed;
+}
+
+/* Types d'objets : deux colonnes. */
+.chips.thing-kinds {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.thing-kinds .chip {
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 14px;
+}
+
+/* Rattacher un papier existant. */
+.attach-search {
+  margin-bottom: 8px;
+}
+
+.attach-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attach-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--category);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.attach-item:active {
+  background: var(--accent-soft);
+}
+
+.attach-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.attach-title {
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.attach-plus {
+  flex: none;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 650;
 }
 
 .thing-name {
@@ -1378,6 +1472,7 @@ p {
 }
 
 .preview-meta p {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1507,6 +1602,38 @@ button.choice {
 .field-error {
   color: var(--danger);
   font-size: 0.875rem;
+}
+
+/* « À traiter » ou « À conserver » : deux boutons côte à côte. */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 14px;
+}
+
+.segmented label {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  border-radius: 11px;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented label:has(input:checked) {
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgb(var(--shadow) / 0.12);
+  color: var(--ink);
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* « + Note » et « + Montant ou abonnement », sur une ligne. */
@@ -1788,14 +1915,15 @@ button.choice {
 
 .page-add {
   display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 12px;
   border: 1px dashed var(--field-border);
   border-radius: 999px;
   color: var(--accent);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
 }
