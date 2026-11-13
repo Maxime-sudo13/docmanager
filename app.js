@@ -62,7 +62,7 @@
     '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.6V5a1.5 1.5 0 0 1 1.5-1.5h7.6l8 8a1.5 1.5 0 0 1 0 2.1l-7.5 7.5a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.4"/></svg>';
 
   // Types d'objets, avec leur dessin.
-  const THING_KINDS = [
+  const BASE_KINDS = [
     { id: 'vehicule', label: 'Véhicule', plural: 'Véhicules', icon: ICON('<path d="M4 16.5V12l2-5h12l2 5v4.5M4 12h16"/><path d="M4 16.5h16v2H4z"/><circle cx="7.5" cy="14.5" r="0.6"/><circle cx="16.5" cy="14.5" r="0.6"/>') },
     { id: 'logement', label: 'Logement', plural: 'Logements', icon: CATEGORY_ICONS.logement },
     { id: 'appareil', label: 'Appareil', plural: 'Appareils', icon: ICON('<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>') },
@@ -70,6 +70,11 @@
     { id: 'personne', label: 'Personne', plural: 'Personnes', icon: ICON('<circle cx="12" cy="8" r="3.6"/><path d="M5 20c.6-3.6 3.4-5.6 7-5.6s6.4 2 7 5.6"/>') },
     { id: 'autre', label: 'Autre', plural: 'Autres', icon: THING_ICON },
   ];
+  // Catégories d'objets : celles de base, puis celles de l'utilisateur
+  // (rangées dans la table « categories » avec `scope: 'thing'`), « Autre »
+  // en dernier.
+  let THING_KINDS = BASE_KINDS.slice();
+  let customKinds = [];
 
   function kindIcon(kind) {
     const found = THING_KINDS.find((candidate) => candidate.id === kind);
@@ -136,6 +141,13 @@
     categoryDeleteText: $('category-delete-text'),
     categoryDeleteCancel: $('category-delete-cancel'),
     categoryDeleteYes: $('category-delete-yes'),
+    categoryColorField: $('category-color-field'),
+    categoryPreviewRow: $('category-preview-row'),
+    kindNew: $('kind-new'),
+    kindNewName: $('kind-new-name'),
+    kindNewError: $('kind-new-error'),
+    kindManageBlock: $('kind-manage-block'),
+    kindManage: $('kind-manage'),
     tabs: $('tabs'),
     tabPapers: $('tab-papers'),
     tabThings: $('tab-things'),
@@ -271,6 +283,7 @@
   const view = { page: 'papers', query: '', category: 'all', regular: false, thing: '' };
   let things = [];                    // objets : [{ key, name, kind, record, papers }], par nom
   let storedThings = [];              // objets créés à la main (table « things »)
+  let kindsShown = '';                // catégories d'objets proposées
   let thingDialogFor = null;          // objet modifié dans la feuille, ou null pour un nouvel objet
   // Feuille ouverte : { mode: 'add', file, fileUrl } pour un nouveau papier,
   // { mode: 'edit', paper, fileUrl } pour un papier existant, sinon null.
@@ -838,7 +851,7 @@
       };
       els.thingsGrid.replaceChildren(
         ...THING_KINDS.map((kind) => {
-          const members = things.filter((thing) => (THING_KINDS.some((k) => k.id === thing.kind) ? thing.kind : 'autre') === kind.id);
+          const members = things.filter((thing) => kindOf(thing) === kind.id);
           if (members.length === 0) return null;
           const section = el('section', 'group things-group');
           section.dataset.kind = kind.id;
@@ -1033,7 +1046,45 @@
     return view.page === 'thing' ? things.find((candidate) => candidate.key === view.thing) || null : null;
   }
 
+  function setCustomKinds(list) {
+    customKinds = list.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    THING_KINDS = BASE_KINDS.slice(0, -1)
+      .concat(customKinds.map((kind) => ({ id: kind.id, label: kind.label, plural: kind.label, icon: THING_ICON })))
+      .concat(BASE_KINDS.slice(-1));
+    const key = THING_KINDS.map((kind) => kind.id + kind.label).join('|');
+    if (key !== kindsShown) {
+      kindsShown = key;
+      buildThingKinds();
+    }
+    renderKindManage();
+  }
+
+  function renderKindManage() {
+    els.kindManageBlock.hidden = customKinds.length === 0;
+    els.kindManage.replaceChildren(
+      ...customKinds.map((kind) => {
+        const item = el('li');
+        const button = el('button', 'category-manage-item');
+        button.type = 'button';
+        button.dataset.id = kind.id;
+        const icon = el('span', 'thing-icon');
+        icon.innerHTML = THING_ICON;
+        const count = storedThings.filter((thing) => thing.kind === kind.id).length;
+        button.append(icon, el('span', 'side-label', kind.label), el('span', 'side-count', String(count)), el('span', 'attach-plus', 'Modifier'));
+        item.append(button);
+        return item;
+      })
+    );
+  }
+
+  // Le type d'un objet, ramené à « autre » s'il n'existe plus.
+  function kindOf(thing) {
+    return THING_KINDS.some((kind) => kind.id === thing.kind) ? thing.kind : 'autre';
+  }
+
   function buildThingKinds() {
+    const checked = els.thingKinds.querySelector('input:checked');
+    const selected = checked ? checked.value : null;
     els.thingKinds.replaceChildren(
       ...THING_KINDS.map((kind) => {
         const label = el('label', 'chip');
@@ -1041,6 +1092,7 @@
         input.type = 'radio';
         input.name = 'thing-kind';
         input.value = kind.id;
+        if (kind.id === selected) input.checked = true;
         const icon = el('span', 'thing-icon');
         icon.innerHTML = kind.icon;
         label.append(input, icon, kind.label);
@@ -1057,12 +1109,44 @@
     els.thingDialogTitle.textContent = thing ? "Modifier l'objet" : 'Nouvel objet';
     els.thingSave.textContent = thing ? 'Enregistrer' : "Créer l'objet";
     els.thingNameInput.value = thing ? thing.name : '';
-    const kind = thing ? thing.kind : 'appareil';
+    const kind = thing ? kindOf(thing) : view.page === 'things' && lastKind ? lastKind : 'appareil';
     els.thingKinds.querySelector('input[value="' + kind + '"]').checked = true;
+    showNewKind(false);
     els.thingDeleteZone.hidden = !thing;
     showThingDelete(false);
     els.thingDialog.showModal();
     if (!thing) els.thingNameInput.focus();
+  }
+
+  let lastKind = null; // dernière catégorie choisie, proposée pour l'objet suivant
+
+  // « + Nouvelle » : un champ pour nommer une catégorie d'objets qui n'existe pas.
+  function showNewKind(open) {
+    els.kindNewName.hidden = !open;
+    els.kindNew.hidden = open;
+    setFieldError(els.kindNewError, els.kindNewName, false);
+    if (open) {
+      for (const input of els.thingKinds.querySelectorAll('input')) input.checked = false;
+      els.kindNewName.value = '';
+      els.kindNewName.focus();
+    }
+  }
+
+  // La catégorie choisie, créée au besoin. Renvoie null si le nom manque.
+  async function chosenKind() {
+    if (els.kindNewName.hidden) {
+      const checked = els.thingKinds.querySelector('input:checked');
+      return checked ? checked.value : 'autre';
+    }
+    const label = els.kindNewName.value.trim().replace(/\s+/g, ' ').slice(0, 24);
+    if (!label) return null;
+    const existing = THING_KINDS.find(
+      (kind) => normalize(kind.label) === normalize(label) || normalize(kind.plural) === normalize(label)
+    );
+    if (existing) return existing.id;
+    const kind = { id: 'k-' + newId(), label, scope: 'thing', createdAt: new Date().toISOString() };
+    await PaperStore.putCategory(kind);
+    return kind.id;
   }
 
   function showThingDelete(visible) {
@@ -1088,11 +1172,17 @@
       els.thingNameInput.focus();
       return;
     }
-    const kind = els.thingKinds.querySelector('input:checked').value;
+    if (!els.kindNewName.hidden && !els.kindNewName.value.trim()) {
+      setFieldError(els.kindNewError, els.kindNewName, true);
+      els.kindNewName.focus();
+      return;
+    }
     const key = thingKey(name);
     const now = new Date().toISOString();
     const editing = thingDialogFor;
     try {
+      const kind = await chosenKind();
+      lastKind = kind;
       if (!editing) {
         const existing = things.find((thing) => thing.key === key);
         if (!existing) await PaperStore.putThing({ id: newId(), name, kind, createdAt: now });
@@ -2617,8 +2707,9 @@
   }
 
   function setCustomCategories(list) {
+    setCustomKinds(list.filter((category) => category.scope === 'thing'));
     customCategories = list
-      .filter((category) => /^#[0-9a-f]{6}$/i.test(category.color))
+      .filter((category) => category.scope !== 'thing' && /^#[0-9a-f]{6}$/i.test(category.color))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     CATEGORIES = BASE_CATEGORIES.slice(0, -1)
       .concat(customCategories.map((category) => ({ id: category.id, label: category.label })))
@@ -2692,7 +2783,18 @@
     els.categoryPreviewLabel.textContent = els.categoryName.value.trim() || 'Aperçu';
   }
 
+  // Une catégorie d'objets se renomme ou se supprime dans la même feuille,
+  // sans couleur.
+  function openKindDialog(kind) {
+    openCategoryDialog(kind, false);
+    els.categoryDialogTitle.textContent = "Modifier la catégorie d'objets";
+    els.categoryColorField.hidden = true;
+    els.categoryPreviewRow.hidden = true;
+  }
+
   function openCategoryDialog(category, fromSheet) {
+    els.categoryColorField.hidden = false;
+    els.categoryPreviewRow.hidden = false;
     categoryDialogFor = category;
     categoryFromSheet = Boolean(fromSheet);
     els.categoryForm.reset();
@@ -2717,6 +2819,14 @@
     els.categoryDeleteConfirm.hidden = !visible;
     els.categoryDelete.hidden = visible;
     if (visible && categoryDialogFor) {
+      if (categoryDialogFor.scope === 'thing') {
+        const objects = storedThings.filter((thing) => thing.kind === categoryDialogFor.id).length;
+        els.categoryDeleteText.textContent =
+          'Supprimer « ' + categoryDialogFor.label + ' » ?' +
+          (objects ? ' ' + (objects > 1 ? 'Ses ' + objects + ' objets passent' : 'Son objet passe') + ' dans « Autres ».' : '');
+        els.categoryDeleteCancel.focus();
+        return;
+      }
       const count = papers.filter((paper) => paper.category === categoryDialogFor.id).length;
       els.categoryDeleteText.textContent =
         'Supprimer « ' + categoryDialogFor.label + ' » ?' +
@@ -2733,7 +2843,8 @@
       els.categoryName.focus();
       return;
     }
-    const existing = CATEGORIES.find(
+    const isKind = Boolean(categoryDialogFor && categoryDialogFor.scope === 'thing');
+    const existing = (isKind ? THING_KINDS : CATEGORIES).find(
       (category) => normalize(category.label) === normalize(label) && (!categoryDialogFor || category.id !== categoryDialogFor.id)
     );
     if (existing) {
@@ -2742,7 +2853,9 @@
       els.categoryName.focus();
       return;
     }
-    const category = categoryDialogFor
+    const category = isKind
+      ? Object.assign({}, categoryDialogFor, { label })
+      : categoryDialogFor
       ? Object.assign({}, categoryDialogFor, { label, color: chosenColor() })
       : { id: 'c-' + newId(), label, color: chosenColor(), createdAt: new Date().toISOString() };
     try {
@@ -2768,6 +2881,11 @@
     const category = categoryDialogFor;
     if (!category) return;
     try {
+      if (category.scope === 'thing') {
+        for (const thing of storedThings.filter((candidate) => candidate.kind === category.id)) {
+          await PaperStore.putThing(Object.assign({}, thing, { kind: 'autre' }));
+        }
+      }
       await PaperStore.removeCategory(category.id, 'autre');
       if (view.category === category.id) view.category = 'all';
       els.categoryDialog.close();
@@ -2890,6 +3008,16 @@
     if (category) openCategoryDialog(category, false);
   });
   els.categoryForm.addEventListener('submit', saveCategory);
+  els.kindNew.addEventListener('click', () => showNewKind(true));
+  els.thingKinds.addEventListener('change', () => {
+    if (!els.kindNewName.hidden) showNewKind(false);
+  });
+  els.kindNewName.addEventListener('input', () => setFieldError(els.kindNewError, els.kindNewName, false));
+  els.kindManage.addEventListener('click', (event) => {
+    const button = event.target.closest('.category-manage-item');
+    const kind = button && customKinds.find((candidate) => candidate.id === button.dataset.id);
+    if (kind) openKindDialog(kind);
+  });
   els.categoryName.addEventListener('input', () => {
     els.categoryNameError.textContent = 'Donner un nom à la catégorie.';
     setFieldError(els.categoryNameError, els.categoryName, false);

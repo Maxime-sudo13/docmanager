@@ -386,10 +386,19 @@ const Backup = (function () {
         if (!raw || typeof raw !== 'object') continue;
         const id = text(raw.id, 60);
         const label = text(raw.label, 24).replace(/\s+/g, ' ');
+        const createdAt = instant(raw.createdAt) || new Date().toISOString();
+        // Catégorie d'objets (« k-… », sans couleur).
+        if (/^k-[\w-]+$/.test(id) && raw.scope === 'thing' && label) {
+          if (!knownCategories.has(id)) {
+            await PaperStore.putCategory({ id, label, scope: 'thing', createdAt });
+            knownCategories.add(id);
+          }
+          continue;
+        }
         const color = /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : '';
         if (!/^c-[\w-]+$/.test(id) || !label || !color) continue;
         if (!knownCategories.has(id)) {
-          await PaperStore.putCategory({ id, label, color, createdAt: instant(raw.createdAt) || new Date().toISOString() });
+          await PaperStore.putCategory({ id, label, color, createdAt });
           knownCategories.add(id);
         }
         if (!categories.includes(id)) categories.push(id);
@@ -407,7 +416,7 @@ const Backup = (function () {
         await PaperStore.putThing({
           id,
           name,
-          kind: THING_KINDS.includes(raw.kind) ? raw.kind : 'autre',
+          kind: THING_KINDS.includes(raw.kind) || /^k-[\w-]+$/.test(raw.kind) ? raw.kind : 'autre',
           createdAt: instant(raw.createdAt) || new Date().toISOString(),
         });
         knownThings.add(id);
