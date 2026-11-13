@@ -83,7 +83,7 @@ la suivante.
 | 9. Notes : écrire ou dicter, avec ou sans document | Livrée, en attente de test |
 | 10. Repérer seul dates et actions dans une note | À faire, plus tard (idée 3 de l'analyse du 13 novembre) |
 | 11. Échéances qui reviennent et montants | Livrée, en attente de test |
-| 12. Objets (voiture, logement, appareils) | À faire, plus tard |
+| 12. Objets (voiture, logement, appareils) | Livrée, en attente de test |
 
 ## Retours de l'utilisateur
 
@@ -329,6 +329,30 @@ montants.
   compris ; sinon un message demande des chiffres. La recherche trouve un
   papier par son montant (« 600 ») ou par « chaque mois ».
 
+Étape 12 (13 novembre 2026, « continue, on testera tout après ») : les
+objets.
+
+- **Un objet est un nom libre** (« Clio », « Appartement », « Lave-linge »)
+  porté par le papier, dans un champ « Objet concerné » replié derrière
+  « + Objet », sur la ligne de « + Note » et « + Montant ou abonnement ».
+  Les noms déjà saisis sont proposés pendant la frappe. Pas de liste d'objets
+  à gérer à part, pas de type d'objet : c'est le plus simple à saisir, et ça
+  suffit pour regrouper.
+- **« clio » et « Clio » sont le même objet** (majuscules, accents et espaces
+  ignorés). Il s'affiche sous l'orthographe la plus fréquente, à égalité sous
+  la première saisie.
+- **Une rangée de pastilles « objets »** sous celle des catégories (téléphone),
+  une rubrique « Objets » dans la barre latérale (ordinateur). Toucher un objet
+  ne montre que ses papiers ; le retoucher montre tout.
+- **La carte de l'objet**, au-dessus de ses papiers : nombre de papiers,
+  montants en tout (une échéance qui revient compte autant de fois qu'elle a
+  été traitée, plus l'échéance en cours) et prochaine échéance. Deux boutons :
+  « Renommer » (change tous ses papiers ; deux objets renommés pareil se
+  rejoignent) et « Ajouter » (objet déjà rempli).
+- Dans la liste, l'objet s'affiche avec une étiquette, sauf dans la vue de
+  l'objet où ce serait répété. La recherche trouve un papier par son objet.
+- Vider le champ retire le papier de l'objet ; un objet sans papier disparaît.
+
 ## Ce qu'il reste pour la mise en ligne
 
 1. **Historique nettoyé, fait le 12 novembre 2026.** L'adresse personnelle de
@@ -390,6 +414,10 @@ montants.
   sont avancés à chaque `refresh()` d'`app.js`, y compris au retour sur
   l'application. La sauvegarde garde ces champs et les revérifie à la
   restauration (format toujours en version 1 : champs ajoutés seulement).
+- **Objets (étape 12)** : champ `thing` (texte, 60 caractères au plus, chaîne
+  vide si aucun). Regroupement en mémoire dans `app.js` (`thingKey`,
+  `collectThings`) ; filtre `view.thing`. Sauvegardé et revérifié à la
+  restauration.
 - **`icons/chevron.svg`** : la flèche de la liste « Revient » (une image, la
   règle de sécurité interdisant les images `data:`).
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la

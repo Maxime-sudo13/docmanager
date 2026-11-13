@@ -775,6 +775,87 @@ p {
   content: "↻ ";
 }
 
+/* L'objet d'un papier (voiture, logement, appareil), dans la liste. */
+.paper-thing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.paper-thing svg,
+.thing-icon svg {
+  display: block;
+  flex: none;
+}
+
+.thing-icon {
+  display: inline-flex;
+  color: var(--ink-soft);
+}
+
+.filter[aria-pressed="true"] .thing-icon {
+  color: inherit;
+}
+
+/* Deuxième rangée de pastilles : les objets. */
+.thing-filters {
+  margin-top: 2px;
+}
+
+/* Carte de l'objet choisi, au-dessus de ses papiers. */
+.thing-card {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 18px 18px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.thing-name {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.thing-stats {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+.thing-card .actions {
+  margin-top: 8px;
+}
+
+.thing-rename {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.thing-rename input {
+  display: block;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  background: var(--surface);
+  border: 1px solid var(--field-border);
+  border-radius: 12px;
+  color: var(--ink);
+  font: inherit;
+}
+
+.thing-rename input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* Un prélèvement automatique n'a pas de rond « traité ». */
 .paper > .paper-open:only-child {
   grid-column: 1 / -1;
@@ -1771,6 +1852,15 @@ button.choice {
     font-size: 0.9375rem;
     text-align: left;
     cursor: pointer;
+  }
+
+  .side-title {
+    margin: 18px 12px 4px;
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }
 
   .side-item[data-filter="all"] .dot {

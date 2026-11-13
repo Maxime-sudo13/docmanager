@@ -337,6 +337,7 @@ const Backup = (function () {
       repeatDay,
       autoPay: repeat > 0 && raw.autoPay === true,
       history,
+      thing: text(raw.thing, 60).replace(/\s+/g, ' '),
       type: /^[\w.+-]+\/[\w.+-]+$/.test(type) ? type : '',
       createdAt: instant(raw.createdAt) || now,
       updatedAt: instant(raw.updatedAt) || now,

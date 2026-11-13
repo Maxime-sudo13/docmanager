@@ -50,6 +50,10 @@
     autre: ICON('<path d="M7.5 3.5H14l5 5v10a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5V6a2.5 2.5 0 0 1 2.5-2.5z"/><path d="M14 3.5V7a1.5 1.5 0 0 0 1.5 1.5H19"/>'),
   };
 
+  // Objet (voiture, logement, appareil) : une étiquette.
+  const THING_ICON =
+    '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.6V5a1.5 1.5 0 0 1 1.5-1.5h7.6l8 8a1.5 1.5 0 0 1 0 2.1l-7.5 7.5a1.5 1.5 0 0 1-2.1 0z"/><circle cx="8" cy="8" r="1.4"/></svg>';
+
   const CHECK_ICON =
     '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -78,6 +82,22 @@
     moneyToggle: $('money-toggle'),
     moneyBlock: $('money-block'),
     moreRow: $('more-row'),
+    thingToggle: $('thing-toggle'),
+    thingField: $('thing-field'),
+    thing: $('thing'),
+    thingList: $('thing-list'),
+    thingFilters: $('thing-filters'),
+    sideThingsTitle: $('side-things-title'),
+    sideThings: $('side-things'),
+    thingCard: $('thing-card'),
+    thingName: $('thing-name'),
+    thingStats: $('thing-stats'),
+    thingRename: $('thing-rename'),
+    thingRenameInput: $('thing-rename-input'),
+    thingRenameCancel: $('thing-rename-cancel'),
+    thingRenameButton: $('thing-rename-button'),
+    thingActions: $('thing-actions'),
+    thingAdd: $('thing-add'),
     categoryField: $('category-chips').closest('fieldset'),
     dueRequiredError: $('due-required-error'),
     sideNav: $('side-nav'),
@@ -172,8 +192,10 @@
   };
 
   let papers = [];                    // toutes les fiches
-  // Recherche et filtre en cours ; `regular` : seulement les échéances qui reviennent.
-  const view = { query: '', category: 'all', regular: false };
+  // Recherche et filtre en cours ; `regular` : seulement les échéances qui
+  // reviennent ; `thing` : seulement les papiers d'un objet (sa clé, voir thingKey).
+  const view = { query: '', category: 'all', regular: false, thing: '' };
+  let things = [];                    // objets : [{ key, name, papers }], par nom
   // Feuille ouverte : { mode: 'add', file, fileUrl } pour un nouveau papier,
   // { mode: 'edit', paper, fileUrl } pour un papier existant, sinon null.
   let sheet = null;
@@ -304,6 +326,43 @@
       .toLowerCase();
   }
 
+  /* ---------- Objets ---------- */
+
+  // Deux papiers sont du même objet si leurs noms ne diffèrent que par les
+  // majuscules, les accents ou les espaces : « clio » et « Clio ».
+  function thingKey(name) {
+    return name ? normalize(name).replace(/\s+/g, ' ').trim() : '';
+  }
+
+  function cleanThing(text) {
+    return String(text || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+  }
+
+  // Les objets, chacun sous le nom le plus souvent écrit.
+  function collectThings() {
+    const groups = new Map();
+    for (const paper of papers) {
+      const key = thingKey(paper.thing);
+      if (!key) continue;
+      if (!groups.has(key)) groups.set(key, { key, papers: [], spellings: new Map() });
+      const group = groups.get(key);
+      group.papers.push(paper);
+      const spelling = group.spellings.get(paper.thing) || { count: 0, first: paper.createdAt };
+      spelling.count++;
+      if (paper.createdAt < spelling.first) spelling.first = paper.createdAt;
+      group.spellings.set(paper.thing, spelling);
+    }
+    // À égalité, l'orthographe saisie la première l'emporte.
+    const best = (a, b) => b[1].count - a[1].count || a[1].first.localeCompare(b[1].first);
+    return [...groups.values()]
+      .map((group) => ({
+        key: group.key,
+        papers: group.papers,
+        name: [...group.spellings].sort(best)[0][0],
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+  }
+
   // Tout ce dans quoi un mot peut être cherché : l'organisme, la catégorie,
   // le nom du fichier et la date limite en toutes lettres.
   function buildSearchText(paper) {
@@ -318,6 +377,7 @@
         typeof paper.amount === 'number' ? formatAmount(paper.amount) + ' ' + amountForInput(paper.amount) : '',
         isRegular(paper) ? REPEATS[paper.repeat] || '' : '',
         isAutoPaid(paper) ? 'prélèvement automatique' : '',
+        paper.thing || '',
       ].join(' ')
     );
   }
@@ -325,6 +385,7 @@
   function matchesView(paper) {
     if (view.category !== 'all' && paper.category !== view.category) return false;
     if (view.regular && !isRegular(paper)) return false;
+    if (view.thing && thingKey(paper.thing) !== view.thing) return false;
     const words = normalize(view.query).split(/\s+/).filter(Boolean);
     const text = searchTexts.get(paper.id) || '';
     return words.every((word) => text.includes(word));
@@ -474,6 +535,12 @@
       meta.append(label);
     }
     if (typeof paper.amount === 'number') meta.append(el('span', 'paper-amount', formatAmount(paper.amount)));
+    if (paper.thing && !view.thing) {
+      const thing = el('span', 'paper-thing');
+      thing.innerHTML = THING_ICON;
+      thing.append(paper.thing);
+      meta.append(thing);
+    }
     if (isRegular(paper) && !paper.done) {
       const label = (REPEATS[paper.repeat] || '').toLowerCase();
       meta.append(el('span', 'paper-repeat', isAutoPaid(paper) ? 'prélevé ' + label : label));
@@ -536,7 +603,7 @@
       );
     }
     for (const button of els.filters.children) {
-      button.setAttribute('aria-pressed', String(button.dataset.filter === view.category && !view.regular));
+      button.setAttribute('aria-pressed', String(button.dataset.filter === view.category && !view.regular && !view.thing));
     }
     renderSideNav(used);
   }
@@ -548,7 +615,7 @@
       button.type = 'button';
       button.dataset.filter = id;
       if (id !== 'all') button.dataset.category = id;
-      button.setAttribute('aria-pressed', String(view.category === id && !view.regular));
+      button.setAttribute('aria-pressed', String(view.category === id && !view.regular && !view.thing));
       button.append(el('span', 'dot'), el('span', 'side-label', label), el('span', 'side-count', String(count)));
       return button;
     };
@@ -559,9 +626,12 @@
       )
     );
     const current = CATEGORIES.find((category) => category.id === view.category);
-    els.viewTitle.textContent = view.regular
-      ? 'Dépenses régulières'
-      : current ? current.label : 'Tous les papiers';
+    const thing = things.find((candidate) => candidate.key === view.thing);
+    els.viewTitle.textContent = thing
+      ? thing.name
+      : view.regular
+        ? 'Dépenses régulières'
+        : current ? current.label : 'Tous les papiers';
   }
 
   // En haut de l'écran : en retard, dans les 7 jours, et en tout à traiter.
@@ -610,6 +680,106 @@
     els.sumRegular.setAttribute('aria-pressed', String(view.regular));
   }
 
+  // Les objets : une rangée de pastilles sur téléphone, une liste dans la
+  // barre latérale sur ordinateur, et la carte de l'objet choisi.
+  function renderThings() {
+    things = collectThings();
+    if (view.thing && !things.some((thing) => thing.key === view.thing)) view.thing = '';
+
+    const chip = (thing, className) => {
+      const button = el('button', className);
+      button.type = 'button';
+      button.dataset.thing = thing.key;
+      button.setAttribute('aria-pressed', String(view.thing === thing.key));
+      const icon = el('span', 'thing-icon');
+      icon.innerHTML = THING_ICON;
+      if (className === 'side-item') {
+        button.append(icon, el('span', 'side-label', thing.name), el('span', 'side-count', String(thing.papers.length)));
+      } else {
+        button.append(icon, thing.name);
+      }
+      return button;
+    };
+    els.thingFilters.hidden = things.length === 0;
+    els.thingFilters.replaceChildren(...things.map((thing) => chip(thing, 'filter')));
+    els.sideThingsTitle.hidden = things.length === 0;
+    els.sideThings.hidden = things.length === 0;
+    els.sideThings.replaceChildren(...things.map((thing) => chip(thing, 'side-item')));
+    els.thingList.replaceChildren(
+      ...things.map((thing) => {
+        const option = el('option');
+        option.value = thing.name;
+        return option;
+      })
+    );
+    renderThingCard();
+  }
+
+  function renderThingCard() {
+    const thing = things.find((candidate) => candidate.key === view.thing);
+    els.thingCard.hidden = !thing;
+    if (!thing) return;
+    els.thingName.textContent = thing.name;
+    // Montants : chaque papier, plus chaque échéance déjà traitée d'un papier
+    // qui revient (elle a été payée à son tour).
+    let cents = 0;
+    let next = null;
+    for (const paper of thing.papers) {
+      if (typeof paper.amount === 'number') cents += paper.amount * (1 + (paper.history || []).length);
+      if (!paper.done && paper.dueDate && (!next || paper.dueDate < next)) next = paper.dueDate;
+    }
+    const parts = [thing.papers.length + (thing.papers.length > 1 ? ' papiers' : ' papier')];
+    if (cents > 0) parts.push(formatAmount(cents) + ' en tout');
+    if (next) parts.push('prochaine échéance le ' + formatDueDate(parseDay(next)));
+    els.thingStats.textContent = parts.join(' · ');
+  }
+
+  function chooseThing(key) {
+    view.thing = view.thing === key ? '' : key;
+    view.category = 'all';
+    view.regular = false;
+    closeRename();
+    render();
+    if (view.thing) els.thingCard.scrollIntoView({ block: 'nearest' });
+  }
+
+  // Renommer un objet : tous ses papiers changent de nom d'objet.
+  function openRename() {
+    const thing = things.find((candidate) => candidate.key === view.thing);
+    if (!thing) return;
+    els.thingRenameInput.value = thing.name;
+    els.thingRename.hidden = false;
+    els.thingActions.hidden = true;
+    els.thingRenameInput.focus();
+    els.thingRenameInput.select();
+  }
+
+  function closeRename() {
+    els.thingRename.hidden = true;
+    els.thingActions.hidden = false;
+  }
+
+  async function renameThing(event) {
+    event.preventDefault();
+    const thing = things.find((candidate) => candidate.key === view.thing);
+    const name = cleanThing(els.thingRenameInput.value);
+    if (!thing || !name) {
+      els.thingRenameInput.focus();
+      return;
+    }
+    try {
+      const now = new Date().toISOString();
+      for (const paper of thing.papers) await PaperStore.update(paper.id, { thing: name, updatedAt: now });
+      view.thing = thingKey(name);
+      closeRename();
+      await refresh();
+      showToast('Objet renommé « ' + name + ' ».');
+    } catch (error) {
+      console.error(error);
+      showToast("Le changement n'a pas pu être enregistré.");
+    }
+  }
+
   function render() {
     const total = papers.length;
     const pending = papers.filter(Reminders.needsAction).length;
@@ -619,6 +789,7 @@
     els.count.textContent =
       total === 0 ? '' : pending === 0 ? 'Tout traité' : pending + ' à traiter';
     els.searchClear.hidden = els.search.value === '';
+    renderThings();
     renderFilters();
     renderSummary(pending);
     renderBell();
@@ -690,6 +861,7 @@
     view.query = '';
     view.category = 'all';
     view.regular = false;
+    view.thing = '';
     els.search.value = '';
     render();
   }
@@ -1496,7 +1668,15 @@
   }
 
   function renderMoreRow() {
-    els.moreRow.hidden = els.noteToggle.hidden && els.moneyToggle.hidden;
+    els.moreRow.hidden = els.noteToggle.hidden && els.moneyToggle.hidden && els.thingToggle.hidden;
+  }
+
+  // L'objet concerné, replié comme la note et le montant.
+  function showThing(open) {
+    els.thingField.hidden = !open;
+    els.thingToggle.hidden = open;
+    els.thingToggle.setAttribute('aria-expanded', String(open));
+    renderMoreRow();
   }
 
   // Montant et échéance qui revient : repliés derrière un lien tant qu'ils
@@ -1560,6 +1740,7 @@
     els.doneStatus.hidden = true;
     els.repeatHistory.hidden = true;
     showMoney(false);
+    showThing(false);
     els.doneToggle.hidden = true;
     els.deleteZone.hidden = true;
     renderReminderRow();
@@ -1600,6 +1781,8 @@
     els.repeat.value = String(REPEATS[paper.repeat] ? paper.repeat : 0);
     els.autopay.checked = Boolean(paper.autoPay);
     showMoney(typeof paper.amount === 'number' || els.repeat.value !== '0');
+    els.thing.value = paper.thing || '';
+    showThing(Boolean(paper.thing));
     const history = paper.history || [];
     els.repeatHistory.hidden = history.length === 0;
     if (history.length > 0) {
@@ -1715,6 +1898,7 @@
       repeat,
       repeatDay: repeat > 0 ? repeatDayFor(dueValue) : null,
       autoPay: repeat > 0 && els.autopay.checked,
+      thing: cleanThing(els.thing.value),
     };
     if (reminded) fields.reminded = reminded;
     return fields;
@@ -1944,6 +2128,7 @@
     if (!button) return;
     view.category = button.dataset.filter;
     view.regular = false;
+    view.thing = '';
     render();
   });
   els.resetView.addEventListener('click', resetView);
@@ -1998,13 +2183,39 @@
     renderReminderRow();
   });
   els.autopay.addEventListener('change', renderReminderRow);
+  els.thingToggle.addEventListener('click', () => {
+    showThing(true);
+    els.thing.focus();
+  });
+  // Objets : pastilles, barre latérale, carte de l'objet.
+  for (const container of [els.thingFilters, els.sideThings]) {
+    container.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-thing]');
+      if (button) chooseThing(button.dataset.thing);
+    });
+  }
+  els.thingRenameButton.addEventListener('click', openRename);
+  els.thingRenameCancel.addEventListener('click', closeRename);
+  els.thingRename.addEventListener('submit', renameThing);
+  // « Ajouter un papier » depuis un objet : l'objet est déjà rempli.
+  els.thingAdd.addEventListener('click', () => {
+    const thing = things.find((candidate) => candidate.key === view.thing);
+    openAdd();
+    if (thing) {
+      els.thing.value = thing.name;
+      showThing(true);
+    }
+  });
   els.moneyToggle.addEventListener('click', () => {
     showMoney(true);
     els.amount.focus();
   });
   els.sumRegular.addEventListener('click', () => {
     view.regular = !view.regular;
-    if (view.regular) view.category = 'all';
+    if (view.regular) {
+      view.category = 'all';
+      view.thing = '';
+    }
     render();
   });
 
@@ -2058,6 +2269,7 @@
     if (!button) return;
     view.category = button.dataset.filter;
     view.regular = false;
+    view.thing = '';
     render();
   });
   els.sideAdd.addEventListener('click', openAdd);
