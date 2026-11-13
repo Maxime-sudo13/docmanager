@@ -27,7 +27,7 @@
   const REPEATS = { 1: 'Chaque mois', 3: 'Tous les 3 mois', 12: 'Chaque année', 24: 'Tous les 2 ans' };
 
   // Catégories fixes. L'identifiant est ce qui est enregistré.
-  const CATEGORIES = [
+  const BASE_CATEGORIES = [
     { id: 'impots', label: 'Impôts' },
     { id: 'sante', label: 'Santé' },
     { id: 'logement', label: 'Logement' },
@@ -35,6 +35,13 @@
     { id: 'energie', label: 'Énergie' },
     { id: 'autre', label: 'Autre' },
   ];
+  // Les catégories de base, puis celles de l'utilisateur (table « categories »).
+  let CATEGORIES = BASE_CATEGORIES.slice();
+  let customCategories = [];
+
+  // Couleurs proposées pour une nouvelle catégorie : bien distinctes de celles
+  // de base et entre elles.
+  const CATEGORY_COLORS = ['#7a4fd6', '#0f8f8a', '#d23c3c', '#8a5a2b', '#3f7d20', '#d14fa5', '#1d6fa3', '#b8860b', '#4b5563', '#e05d00'];
 
   // Icônes des catégories (dessin au trait, couleur de la catégorie).
   const ICON = (path) =>
@@ -106,7 +113,27 @@
     thingToggle: $('thing-toggle'),
     thingField: $('thing-field'),
     thing: $('thing'),
-    thingList: $('thing-list'),
+    thingSelect: $('thing-select'),
+    dueField: $('due-field'),
+    categoryNew: $('category-new'),
+    categoryNewSettings: $('category-new-settings'),
+    categoryManage: $('category-manage'),
+    categoryDialog: $('category-dialog'),
+    categoryDialogTitle: $('category-dialog-title'),
+    categoryForm: $('category-form'),
+    categoryName: $('category-name'),
+    categoryNameError: $('category-name-error'),
+    categoryColors: $('category-colors'),
+    categoryColorCustom: $('category-color-custom'),
+    categoryPreview: $('category-preview'),
+    categoryPreviewLabel: $('category-preview-label'),
+    categorySave: $('category-save'),
+    categoryDeleteZone: $('category-delete-zone'),
+    categoryDelete: $('category-delete'),
+    categoryDeleteConfirm: $('category-delete-confirm'),
+    categoryDeleteText: $('category-delete-text'),
+    categoryDeleteCancel: $('category-delete-cancel'),
+    categoryDeleteYes: $('category-delete-yes'),
     tabs: $('tabs'),
     tabPapers: $('tab-papers'),
     tabThings: $('tab-things'),
@@ -247,7 +274,8 @@
   // { mode: 'edit', paper, fileUrl } pour un papier existant, sinon null.
   let sheet = null;
   let busy = false;
-  let filtersShown = '';              // catégories actuellement proposées dans le filtre
+  let filtersShown = '';
+  let categoriesShown = '';           // catégories proposées dans la fiche              // catégories actuellement proposées dans le filtre
   let toastTimer = null;
   let toastAction = null;             // ce que fait le bouton du message bref
   // Le service worker, s'il a pu être installé (il faut une adresse en https
@@ -571,7 +599,7 @@
       // catégorie à la place du jour.
       block.classList.add('cal-none');
       const icon = el('span', 'cal-icon');
-      icon.innerHTML = CATEGORY_ICONS[paper.category] || CATEGORY_ICONS.autre;
+      icon.innerHTML = CATEGORY_ICONS[paper.category] || THING_ICON;
       block.append(el('span', 'cal-m', paper.keep && !paper.done ? 'Gardé' : 'Sans date'), icon);
       return block;
     }
@@ -781,13 +809,7 @@
         return button;
       })
     );
-    els.thingList.replaceChildren(
-      ...things.map((thing) => {
-        const option = el('option');
-        option.value = thing.name;
-        return option;
-      })
-    );
+    renderThingSelect();
 
     if (view.page === 'things') {
       els.thingsEmpty.hidden = things.length > 0;
@@ -1166,6 +1188,7 @@
     papers = await PaperStore.list();
     if (await rollAutoPayments(papers)) papers = await PaperStore.list();
     storedThings = await PaperStore.listThings();
+    setCustomCategories(await PaperStore.listCategories());
 
     searchTexts.clear();
     for (const paper of papers) searchTexts.set(paper.id, buildSearchText(paper));
@@ -1930,9 +1953,9 @@
 
   function renderReminderRow() {
     const keep = isKeepChosen();
-    // À conserver : la date devient une fin de validité, et rien ne revient.
+    // À conserver : pas de date (rien à faire) et rien ne revient.
     els.kindHint.hidden = !keep;
-    els.dueLabel.textContent = keep ? "Valable jusqu'au" : 'Date limite';
+    els.dueField.hidden = keep;
     els.repeatField.hidden = keep;
     if (keep) els.repeat.value = '0';
     const repeat = Number(els.repeat.value) || 0;
@@ -2017,6 +2040,40 @@
     els.moreRow.hidden = els.noteToggle.hidden && els.moneyToggle.hidden && els.thingToggle.hidden;
   }
 
+  // Liste des objets dans la fiche : aucun, ceux qui existent, ou un nouveau.
+  const NEW_THING = '\u0000nouveau';
+
+  function renderThingSelect() {
+    const current = els.thingSelect.value;
+    const option = (value, label) => {
+      const node = el('option', '', label);
+      node.value = value;
+      return node;
+    };
+    els.thingSelect.replaceChildren(
+      option('', 'Aucun'),
+      ...things.map((thing) => option(thing.name, thing.name)),
+      option(NEW_THING, '+ Nouvel objet…')
+    );
+    setThingChoice(current === NEW_THING ? NEW_THING : current);
+  }
+
+  // Choisit un objet dans la liste par son nom (quelle que soit l'écriture).
+  function setThingChoice(name) {
+    if (name === NEW_THING) {
+      els.thingSelect.value = NEW_THING;
+    } else {
+      const thing = name ? things.find((candidate) => candidate.key === thingKey(name)) : null;
+      els.thingSelect.value = thing ? thing.name : '';
+    }
+    els.thing.hidden = els.thingSelect.value !== NEW_THING;
+  }
+
+  function chosenThing() {
+    if (els.thingSelect.value === NEW_THING) return cleanThing(els.thing.value);
+    return els.thingSelect.value;
+  }
+
   // L'objet concerné, replié comme la note et le montant.
   function showThing(open) {
     els.thingField.hidden = !open;
@@ -2092,10 +2149,9 @@
     renderReminderRow();
     // Depuis la page d'un objet, le nouveau papier lui est déjà rattaché.
     const thing = view.page === 'thing' && things.find((candidate) => candidate.key === view.thing);
-    if (thing) {
-      els.thing.value = thing.name;
-      showThing(true);
-    }
+    els.thing.value = '';
+    setThingChoice(thing ? thing.name : '');
+    if (thing) showThing(true);
     showStep('choose');
     showSheet(false);
   }
@@ -2134,7 +2190,8 @@
     els.autopay.checked = Boolean(paper.autoPay);
     els.kindChoice.querySelector('input[value="' + (paper.keep ? 'keep' : 'todo') + '"]').checked = true;
     showMoney(typeof paper.amount === 'number' || els.repeat.value !== '0');
-    els.thing.value = paper.thing || '';
+    els.thing.value = '';
+    setThingChoice(paper.thing || '');
     showThing(Boolean(paper.thing));
     const history = paper.history || [];
     els.repeatHistory.hidden = history.length === 0;
@@ -2195,15 +2252,17 @@
   function readFields() {
     const checked = els.categoryChips.querySelector('input:checked');
     const organisation = els.organisation.value.trim().replace(/\s+/g, ' ');
-    const dueValue = els.dueDate.value;
+    // Un papier à conserver n'a pas de date : le champ, masqué, est ignoré.
+    const keep = isKeepChosen();
+    const dueValue = keep ? '' : els.dueDate.value;
     // Une date à moitié saisie donne une valeur vide mais « badInput ».
     const dueIncomplete =
-      (els.dueDate.validity && els.dueDate.validity.badInput) ||
-      (dueValue !== '' && !parseDay(dueValue));
+      !keep &&
+      ((els.dueDate.validity && els.dueDate.validity.badInput) ||
+        (dueValue !== '' && !parseDay(dueValue)));
 
     const amount = parseAmount(els.amount.value);
     const amountInvalid = Number.isNaN(amount);
-    const keep = isKeepChosen();
     const repeat = !keep && REPEATS[els.repeat.value] ? Number(els.repeat.value) : 0;
     // Une échéance qui revient a forcément une date.
     const dueMissing = repeat > 0 && dueValue === '' && !dueIncomplete;
@@ -2246,13 +2305,13 @@
     const fields = {
       category: checked.value,
       organisation,
-      dueDate: dueValue || null,
+      dueDate: keep ? null : dueValue || null,
       note,
       amount,
       repeat,
       repeatDay: repeat > 0 ? repeatDayFor(dueValue) : null,
       autoPay: repeat > 0 && els.autopay.checked,
-      thing: cleanThing(els.thing.value),
+      thing: chosenThing(),
       keep,
     };
     if (reminded) fields.reminded = reminded;
@@ -2444,6 +2503,8 @@
   /* ---------- Branchements ---------- */
 
   function buildCategoryChips() {
+    const checked = els.categoryChips.querySelector('input:checked');
+    const selected = checked ? checked.value : null;
     els.categoryChips.replaceChildren(
       ...CATEGORIES.map((category) => {
         const label = el('label', 'chip');
@@ -2452,10 +2513,194 @@
         input.type = 'radio';
         input.name = 'category';
         input.value = category.id;
+        if (category.id === selected) input.checked = true;
         label.append(input, el('span', 'dot'), category.label);
         return label;
       })
     );
+  }
+
+  /* ---------- Catégories personnelles ---------- */
+
+  // Feuille de style construite par le script : la règle de sécurité interdit
+  // les styles écrits dans la page, pas ceux ajoutés ainsi.
+  const categorySheet = (() => {
+    try {
+      const sheet = new CSSStyleSheet();
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+      return sheet;
+    } catch (error) {
+      return null; // très vieux navigateur : les catégories ajoutées restent grises
+    }
+  })();
+
+  // Clair ou foncé ? Sur une couleur claire, le texte de la bande est foncé.
+  function isLight(hex) {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6;
+  }
+
+  function setCustomCategories(list) {
+    customCategories = list
+      .filter((category) => /^#[0-9a-f]{6}$/i.test(category.color))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    CATEGORIES = BASE_CATEGORIES.slice(0, -1)
+      .concat(customCategories.map((category) => ({ id: category.id, label: category.label })))
+      .concat(BASE_CATEGORIES.slice(-1)); // « Autre » reste en dernier
+    if (categorySheet) {
+      categorySheet.replaceSync(
+        customCategories
+          .map((category) =>
+            '[data-category="' + category.id + '"] { --category: ' + category.color + '; }' +
+            (isLight(category.color)
+              ? '.cal[data-category="' + category.id + '"]:not(.cal-late) .cal-m { color: #2a2410; }'
+              : '')
+          )
+          .join('\n')
+      );
+    }
+    const key = CATEGORIES.map((category) => category.id + category.label).join('|');
+    if (key !== categoriesShown) {
+      categoriesShown = key;
+      buildCategoryChips();
+      filtersShown = ''; // le filtre se reconstruit
+    }
+    renderCategoryManage();
+  }
+
+  // Dans « ⋮ » : les catégories ajoutées, chacune modifiable.
+  function renderCategoryManage() {
+    els.categoryManage.hidden = customCategories.length === 0;
+    els.categoryManage.replaceChildren(
+      ...customCategories.map((category) => {
+        const item = el('li');
+        const button = el('button', 'category-manage-item');
+        button.type = 'button';
+        button.dataset.id = category.id;
+        button.dataset.category = category.id;
+        const count = papers.filter((paper) => paper.category === category.id).length;
+        button.append(el('span', 'dot'), el('span', 'side-label', category.label), el('span', 'side-count', String(count)), el('span', 'attach-plus', 'Modifier'));
+        item.append(button);
+        return item;
+      })
+    );
+  }
+
+  let categoryDialogFor = null; // catégorie modifiée, ou null pour une nouvelle
+  let categoryFromSheet = false; // ouverte depuis la fiche d'un papier
+
+  function buildColorChoice() {
+    els.categoryColors.replaceChildren(
+      ...CATEGORY_COLORS.map((color) => {
+        const label = el('label', 'color-swatch');
+        const input = el('input', 'visually-hidden');
+        input.type = 'radio';
+        input.name = 'category-color';
+        input.value = color;
+        input.setAttribute('aria-label', 'Couleur ' + color);
+        const dot = el('span', 'swatch');
+        dot.style.setProperty('--swatch', color);
+        label.append(input, dot);
+        return label;
+      })
+    );
+  }
+
+  function chosenColor() {
+    const checked = els.categoryColors.querySelector('input:checked');
+    return checked ? checked.value : els.categoryColorCustom.value;
+  }
+
+  function renderCategoryPreview() {
+    els.categoryPreview.style.setProperty('--category', chosenColor());
+    els.categoryPreviewLabel.textContent = els.categoryName.value.trim() || 'Aperçu';
+  }
+
+  function openCategoryDialog(category, fromSheet) {
+    categoryDialogFor = category;
+    categoryFromSheet = Boolean(fromSheet);
+    els.categoryForm.reset();
+    setFieldError(els.categoryNameError, els.categoryName, false);
+    els.categoryDialogTitle.textContent = category ? 'Modifier la catégorie' : 'Nouvelle catégorie';
+    els.categorySave.textContent = category ? 'Enregistrer' : 'Créer la catégorie';
+    els.categoryName.value = category ? category.label : '';
+    // Une couleur pas encore prise, par défaut.
+    const used = new Set(customCategories.map((candidate) => candidate.color.toLowerCase()));
+    const color = category ? category.color : CATEGORY_COLORS.find((candidate) => !used.has(candidate)) || CATEGORY_COLORS[0];
+    const swatch = els.categoryColors.querySelector('input[value="' + color + '"]');
+    if (swatch) swatch.checked = true;
+    else els.categoryColorCustom.value = color;
+    els.categoryDeleteZone.hidden = !category;
+    showCategoryDelete(false);
+    renderCategoryPreview();
+    els.categoryDialog.showModal();
+    if (!category) els.categoryName.focus();
+  }
+
+  function showCategoryDelete(visible) {
+    els.categoryDeleteConfirm.hidden = !visible;
+    els.categoryDelete.hidden = visible;
+    if (visible && categoryDialogFor) {
+      const count = papers.filter((paper) => paper.category === categoryDialogFor.id).length;
+      els.categoryDeleteText.textContent =
+        'Supprimer « ' + categoryDialogFor.label + ' » ?' +
+        (count ? ' ' + (count > 1 ? 'Ses ' + count + ' papiers passent' : 'Son papier passe') + ' dans « Autre ».' : '');
+      els.categoryDeleteCancel.focus();
+    }
+  }
+
+  async function saveCategory(event) {
+    event.preventDefault();
+    const label = els.categoryName.value.trim().replace(/\s+/g, ' ').slice(0, 24);
+    setFieldError(els.categoryNameError, els.categoryName, !label);
+    if (!label) {
+      els.categoryName.focus();
+      return;
+    }
+    const existing = CATEGORIES.find(
+      (category) => normalize(category.label) === normalize(label) && (!categoryDialogFor || category.id !== categoryDialogFor.id)
+    );
+    if (existing) {
+      els.categoryNameError.textContent = 'Cette catégorie existe déjà.';
+      setFieldError(els.categoryNameError, els.categoryName, true);
+      els.categoryName.focus();
+      return;
+    }
+    const category = categoryDialogFor
+      ? Object.assign({}, categoryDialogFor, { label, color: chosenColor() })
+      : { id: 'c-' + newId(), label, color: chosenColor(), createdAt: new Date().toISOString() };
+    try {
+      await PaperStore.putCategory(category);
+      els.categoryDialog.close();
+      await refresh();
+      // Créée depuis la fiche d'un papier : elle y est choisie aussitôt.
+      if (categoryFromSheet && !categoryDialogFor) {
+        const input = els.categoryChips.querySelector('input[value="' + category.id + '"]');
+        if (input) {
+          input.checked = true;
+          setFieldError(els.categoryError, null, false);
+        }
+      }
+      showToast(categoryDialogFor ? 'Catégorie enregistrée.' : 'Catégorie « ' + label + ' » créée.');
+    } catch (error) {
+      console.error(error);
+      showToast("Le changement n'a pas pu être enregistré.");
+    }
+  }
+
+  async function deleteCategory() {
+    const category = categoryDialogFor;
+    if (!category) return;
+    try {
+      await PaperStore.removeCategory(category.id, 'autre');
+      if (view.category === category.id) view.category = 'all';
+      els.categoryDialog.close();
+      await refresh();
+      showToast('« ' + category.label + ' » est supprimée.');
+    } catch (error) {
+      console.error(error);
+      showToast('La suppression a échoué.');
+    }
   }
 
   function watchInput(input) {
@@ -2469,6 +2714,7 @@
 
   buildCategoryChips();
   buildThingKinds();
+  buildColorChoice();
   applyTheme(savedTheme());
   document.getElementById('theme-choice').addEventListener('change', (event) => {
     if (event.target.name === 'theme') chooseTheme(event.target.value);
@@ -2548,7 +2794,36 @@
   els.kindChoice.addEventListener('change', renderReminderRow);
   els.thingToggle.addEventListener('click', () => {
     showThing(true);
-    els.thing.focus();
+    els.thingSelect.focus();
+  });
+  els.thingSelect.addEventListener('change', () => {
+    setThingChoice(els.thingSelect.value);
+    if (els.thingSelect.value === NEW_THING) els.thing.focus();
+  });
+  // Catégories personnelles.
+  els.categoryNew.addEventListener('click', () => openCategoryDialog(null, true));
+  els.categoryNewSettings.addEventListener('click', () => openCategoryDialog(null, false));
+  els.categoryManage.addEventListener('click', (event) => {
+    const button = event.target.closest('.category-manage-item');
+    const category = button && customCategories.find((candidate) => candidate.id === button.dataset.id);
+    if (category) openCategoryDialog(category, false);
+  });
+  els.categoryForm.addEventListener('submit', saveCategory);
+  els.categoryName.addEventListener('input', () => {
+    els.categoryNameError.textContent = 'Donner un nom à la catégorie.';
+    setFieldError(els.categoryNameError, els.categoryName, false);
+    renderCategoryPreview();
+  });
+  els.categoryColors.addEventListener('change', renderCategoryPreview);
+  els.categoryColorCustom.addEventListener('input', () => {
+    for (const input of els.categoryColors.querySelectorAll('input')) input.checked = false;
+    renderCategoryPreview();
+  });
+  els.categoryDelete.addEventListener('click', () => showCategoryDelete(true));
+  els.categoryDeleteCancel.addEventListener('click', () => showCategoryDelete(false));
+  els.categoryDeleteYes.addEventListener('click', deleteCategory);
+  els.categoryDialog.addEventListener('click', (event) => {
+    if (event.target === els.categoryDialog || event.target.closest('[data-close]')) els.categoryDialog.close();
   });
   // Pages : onglets (téléphone), barre latérale (ordinateur), cartes d'objets.
   els.tabPapers.addEventListener('click', () => goTo('papers'));

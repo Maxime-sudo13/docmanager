@@ -33,7 +33,7 @@
     navigateur voit alors de nouveaux fichiers et ne réutilise pas les anciens
     qu'il garde en mémoire. Ne pas oublier les cinq lignes concernées.
   -->
-  <link rel="stylesheet" href="style.css?v=2026-11-14b">
+  <link rel="stylesheet" href="style.css?v=2026-11-14c">
 </head>
 <body>
 
@@ -295,7 +295,11 @@
         </div>
 
         <fieldset class="field">
-          <legend>Catégorie</legend>
+          <legend class="visually-hidden">Catégorie</legend>
+          <div class="field-head">
+            <span class="field-head-label" aria-hidden="true">Catégorie</span>
+            <button id="category-new" class="link-button" type="button">+ Nouvelle</button>
+          </div>
           <div id="category-chips" class="chips"></div>
           <p id="category-error" class="field-error" hidden>Choisir une catégorie.</p>
         </fieldset>
@@ -310,7 +314,7 @@
           <p id="organisation-error" class="field-error" hidden>Indiquer l'organisme.</p>
         </div>
 
-        <div class="field">
+        <div id="due-field" class="field">
           <label for="due-date"><span id="due-label">Date limite</span> <span class="optional">facultative</span></label>
           <input id="due-date" name="dueDate" type="date" aria-describedby="due-date-error">
           <p id="due-date-error" class="field-error" hidden>Compléter la date ou la laisser vide.</p>
@@ -327,12 +331,12 @@
           <button id="thing-toggle" class="link-button" type="button" aria-controls="thing-field" aria-expanded="false">+ Objet</button>
         </div>
         <div id="thing-field" class="field" hidden>
-          <label for="thing">Objet concerné <span class="optional">facultatif</span></label>
-          <input id="thing" name="thing" type="text" list="thing-list" maxlength="60"
+          <label for="thing-select">Objet concerné <span class="optional">facultatif</span></label>
+          <!-- Un objet déjà là, aucun, ou un nouvel objet à nommer. -->
+          <select id="thing-select" name="thing-select"></select>
+          <input id="thing" name="thing" type="text" maxlength="60" hidden
                  autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done"
-                 placeholder="Ex. : Clio, appartement, lave-linge" aria-describedby="thing-hint">
-          <datalist id="thing-list"></datalist>
-          <p id="thing-hint" class="hint">Pour retrouver tous les papiers d'une voiture, d'un logement ou d'un appareil.</p>
+                 placeholder="Nom du nouvel objet : Clio, appartement…" aria-label="Nom du nouvel objet">
         </div>
         <div id="money-block" class="money-block" hidden>
         <div class="field-row">
@@ -411,6 +415,46 @@
             <div class="actions">
               <button id="thing-delete-cancel" class="btn btn-secondary" type="button">Annuler</button>
               <button id="thing-delete-yes" class="btn btn-danger" type="button">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Créer ou modifier une catégorie personnelle. -->
+  <dialog id="category-dialog" class="sheet" aria-labelledby="category-dialog-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <h2 id="category-dialog-title">Nouvelle catégorie</h2>
+        <button class="icon-button" type="button" data-close aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <form id="category-form" class="paper-form" novalidate>
+        <div class="field">
+          <label for="category-name">Nom</label>
+          <input id="category-name" type="text" maxlength="24" autocomplete="off" enterkeyhint="done"
+                 placeholder="Ex. : Voiture, Enfants, Travail" aria-describedby="category-name-error">
+          <p id="category-name-error" class="field-error" hidden>Donner un nom à la catégorie.</p>
+        </div>
+        <fieldset class="field">
+          <legend>Couleur</legend>
+          <div id="category-colors" class="color-choice"></div>
+          <label class="color-custom">
+            <input id="category-color-custom" type="color" value="#7a4fd6">
+            <span>Autre couleur</span>
+          </label>
+        </fieldset>
+        <p class="category-preview-row"><span id="category-preview" class="tag"><span class="dot"></span><span id="category-preview-label">Aperçu</span></span></p>
+        <button id="category-save" class="btn btn-primary" type="submit">Créer la catégorie</button>
+        <div id="category-delete-zone" class="delete-zone" hidden>
+          <button id="category-delete" class="btn btn-danger-quiet" type="button">Supprimer la catégorie</button>
+          <div id="category-delete-confirm" class="delete-confirm" hidden>
+            <p id="category-delete-text"></p>
+            <div class="actions">
+              <button id="category-delete-cancel" class="btn btn-secondary" type="button">Annuler</button>
+              <button id="category-delete-yes" class="btn btn-danger" type="button">Supprimer</button>
             </div>
           </div>
         </div>
@@ -499,6 +543,12 @@
         </p>
       </section>
 
+      <section aria-labelledby="categories-title">
+        <h3 id="categories-title" class="group-title">Catégories</h3>
+        <ul id="category-manage" class="category-manage"></ul>
+        <button id="category-new-settings" class="btn btn-secondary" type="button">Nouvelle catégorie</button>
+      </section>
+
       <section aria-labelledby="theme-title">
         <h3 id="theme-title" class="group-title">Apparence</h3>
         <div id="theme-choice" class="theme-choice" role="radiogroup" aria-labelledby="theme-title">
@@ -530,9 +580,9 @@
     </div>
   </dialog>
 
-  <script src="store.js?v=2026-11-14b"></script>
-  <script src="reminders.js?v=2026-11-14b"></script>
-  <script src="backup.js?v=2026-11-14b"></script>
-  <script src="app.js?v=2026-11-14b"></script>
+  <script src="store.js?v=2026-11-14c"></script>
+  <script src="reminders.js?v=2026-11-14c"></script>
+  <script src="backup.js?v=2026-11-14c"></script>
+  <script src="app.js?v=2026-11-14c"></script>
 </body>
 </html>

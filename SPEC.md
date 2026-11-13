@@ -47,7 +47,8 @@ de courrier.
 
 ## Choix par défaut
 
-- Catégories fixes.
+- Catégories : six de base, plus celles que l'utilisateur ajoute avec la
+  couleur de son choix (depuis le 14 novembre 2026, à sa demande).
 - Une seule date limite par papier.
 - Rappels : notification locale. Le bouton « Ajouter au calendrier » (fichier
   .ics) prévu en repli a été retiré le 13 novembre 2026 à la demande de
@@ -85,7 +86,8 @@ la suivante.
 | 11. Échéances qui reviennent et montants | Livrée, en attente de test |
 | 12. Objets (voiture, logement, appareils) | Livrée (page à part depuis la PR #14) |
 | 13. Papiers à conserver | Livrée, en attente de test |
-| 13 bis. Créer un objet sans papier, rattacher des papiers existants | Livrée, en attente de test |
+| 13 bis. Créer un objet sans papier, rattacher des papiers existants | Livrée (PR #15) |
+| 13 ter. Catégories personnelles, objet choisi dans une liste, papiers à conserver sans date | Livrée, en attente de test |
 | 14. Nouvelle structure : « À faire », « Classeur », « Objets » | Proposée, à valider |
 
 ## Retours de l'utilisateur
@@ -374,7 +376,7 @@ papiers à conserver pour chaque objet ») :
   fiche (deux boutons côte à côte, « À traiter » par défaut). À conserver :
   carte grise, contrat, garantie, diplôme… Rien à faire, donc pas de rond
   « traité », pas de place dans les trois cases du résumé, pas de « Revient ».
-- **Sa date devient « Valable jusqu'au »**, facultative : un passeport, une
+- **(Remplacé à l'étape 13 ter : plus de date.)** Sa date devenait « Valable jusqu'au », facultative : un passeport, une
   garantie. Elle garde les rappels 7 jours avant et la veille, et la liste dit
   « Expire dans 5 jours » ou « Expiré ».
 - **Un groupe « À conserver »** dans la liste, rangé par organisme comme un
@@ -404,6 +406,27 @@ cet objet-là, plus mon abonnement ou mon assurance ») :
   existe déjà ouvre celui qui existe.
 - « Ajouter un papier » depuis la page d'un objet lui rattache toujours le
   nouveau papier.
+
+Étape 13 ter (14 novembre 2026, retours de l'utilisateur après essai sur
+iPhone) :
+
+- **Un papier à conserver n'a pas de date** (« pas besoin de date limite ») :
+  le champ disparaît quand on choisit « À conserver », et une date saisie
+  avant est ignorée. Remplace le « Valable jusqu'au » de l'étape 13. Les
+  fiches anciennes qui en ont une la gardent jusqu'à leur prochain
+  enregistrement.
+- **Catégories personnelles** : « + Nouvelle » à droite de « Catégorie »
+  dans la fiche (sans allonger la fiche), ou « Nouvelle catégorie » dans
+  « ⋮ ». Un nom (24 caractères) et une couleur parmi dix bien distinctes de
+  celles de base, ou « Autre couleur » (sélecteur du téléphone). Créée depuis
+  la fiche, elle y est choisie aussitôt. Elle se range avant « Autre », qui
+  reste en dernier. Dans « ⋮ », la rubrique « Catégories » liste celles
+  ajoutées (avec leur nombre de papiers) : toucher pour renommer, changer de
+  couleur ou supprimer (ses papiers passent dans « Autre »). Un nom déjà pris
+  (« santé ») est refusé. Les six catégories de base ne se modifient pas.
+- **« Objet concerné » est une liste** : « Aucun », les objets existants,
+  puis « + Nouvel objet… », qui fait apparaître un champ pour le nommer.
+  Remplace la saisie libre avec suggestions, que l'iPhone ne montrait pas.
 
 ## Structure proposée pour la suite (à valider)
 
@@ -502,6 +525,17 @@ l'utilisateur, avec une maquette avant.
   (`collectThings`), la fiche donnant le nom et le type. `PaperStore` :
   `listThings`, `putThing`, `removeThing`. Sauvegarde : liste `things` dans
   `mes-papiers.json` (format toujours en version 1, champ ajouté).
+- **Catégories personnelles (étape 13 ter)** : base en **version 3**, table
+  `categories` `{ id, label, color, createdAt }`, `id` commençant par `c-`,
+  `color` en `#rrggbb`. `PaperStore` : `listCategories`, `putCategory`,
+  `removeCategory(id, fallback)` (qui range ses papiers dans `fallback` dans
+  la même transaction). Leurs couleurs passent par une feuille de style
+  construite par le script (`CSSStyleSheet` + `adoptedStyleSheets`), que la
+  règle de sécurité autorise, contrairement à un `<style>` dans la page ; sur
+  une couleur claire, le texte de la bande du calendrier passe en foncé.
+  `CATEGORIES` dans `app.js` est désormais variable (base + personnelles).
+  Sauvegarde : liste `categories` dans `mes-papiers.json`, restaurée avant
+  les papiers.
 - **`icons/chevron.svg`** : la flèche de la liste « Revient » (une image, la
   règle de sécurité interdisant les images `data:`).
 - **Polices** : `fonts/` contient les fichiers `.woff2` et leurs licences ; la

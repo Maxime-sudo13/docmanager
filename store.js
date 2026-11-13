@@ -2,12 +2,14 @@
  * Accès aux données de « Mes papiers » : tout est enregistré dans IndexedDB,
  * sur l'appareil, et nulle part ailleurs.
  *
- * Trois tables :
+ * Quatre tables :
  *   - « papers » : la fiche de chaque papier (champs + vignette) ;
  *   - « files »  : le fichier lui-même, rangé à part pour ne pas charger
  *                  toutes les photos en mémoire quand on affiche la liste ;
  *   - « things » : les objets créés à la main (voiture, logement, appareil),
- *                  qui existent même avant d'avoir un papier (version 2).
+ *                  qui existent même avant d'avoir un papier (version 2) ;
+ *   - « categories » : les catégories ajoutées par l'utilisateur, avec leur
+ *                  couleur (version 3).
  *
  * Les fichiers sont stockés sous forme d'ArrayBuffer plutôt que de Blob :
  * c'est la forme la mieux prise en charge par tous les navigateurs.
@@ -17,10 +19,11 @@ const PaperStore = (function () {
   'use strict';
 
   const DB_NAME = 'mes-papiers';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const PAPERS = 'papers';
   const FILES = 'files';
   const THINGS = 'things';
+  const CATEGORIES = 'categories';
 
   let dbPromise = null;
 
@@ -34,6 +37,8 @@ const PaperStore = (function () {
           if (!db.objectStoreNames.contains(FILES)) db.createObjectStore(FILES, { keyPath: 'id' });
           // Version 2 : les objets. Rien à convertir, les papiers ne changent pas.
           if (!db.objectStoreNames.contains(THINGS)) db.createObjectStore(THINGS, { keyPath: 'id' });
+          // Version 3 : les catégories personnelles.
+          if (!db.objectStoreNames.contains(CATEGORIES)) db.createObjectStore(CATEGORIES, { keyPath: 'id' });
         };
         request.onsuccess = () => {
           const db = request.result;
@@ -236,6 +241,38 @@ const PaperStore = (function () {
     async removeThing(id) {
       await transaction(THINGS, 'readwrite', (tx) => {
         tx.objectStore(THINGS).delete(id);
+      });
+    },
+
+    /* Catégories personnelles : { id, label, color, createdAt }. */
+
+    async listCategories() {
+      return transaction(CATEGORIES, 'readonly', (tx) => {
+        const request = tx.objectStore(CATEGORIES).getAll();
+        return () => request.result;
+      });
+    },
+
+    async putCategory(category) {
+      await transaction(CATEGORIES, 'readwrite', (tx) => {
+        tx.objectStore(CATEGORIES).put(Object.assign({}, category));
+      });
+    },
+
+    /** Supprime une catégorie ; ses papiers passent dans `fallback`. */
+    async removeCategory(id, fallback) {
+      await transaction([CATEGORIES, PAPERS], 'readwrite', (tx) => {
+        tx.objectStore(CATEGORIES).delete(id);
+        const papers = tx.objectStore(PAPERS);
+        const request = papers.openCursor();
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (!cursor) return;
+          if (cursor.value.category === id) {
+            cursor.update(Object.assign(cursor.value, { category: fallback, updatedAt: new Date().toISOString() }));
+          }
+          cursor.continue();
+        };
       });
     },
 
